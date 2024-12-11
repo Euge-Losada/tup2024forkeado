@@ -1,6 +1,6 @@
 package ar.edu.utn.frbb.tup.service;
 
-import ar.edu.utn.frbb.tup.controller.ClienteDto;
+import ar.edu.utn.frbb.tup.controller.dto.ClienteDto;
 import ar.edu.utn.frbb.tup.model.Cliente;
 import ar.edu.utn.frbb.tup.model.Cuenta;
 import ar.edu.utn.frbb.tup.model.TipoCuenta;
@@ -20,8 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,7 +53,7 @@ public class ClienteServiceTest {
         ClienteDto cliente = new ClienteDto();
         cliente.setFechaNacimiento("1978-03-18");
         cliente.setDni(29857643);
-        cliente.setTipoPersona(TipoPersona.PERSONA_FISICA.toString());
+        cliente.setTipoPersona("F");
         Cliente clienteEntity = clienteService.darDeAltaCliente(cliente);
 
         verify(clienteDao, times(1)).save(clienteEntity);
@@ -67,7 +66,7 @@ public class ClienteServiceTest {
         pepeRino.setNombre("Pepe");
         pepeRino.setApellido("Rino");
         pepeRino.setFechaNacimiento("1978-03-18");
-        pepeRino.setTipoPersona(TipoPersona.PERSONA_FISICA.toString());
+        pepeRino.setTipoPersona("F");
 
         when(clienteDao.find(26456437, false)).thenReturn(new Cliente());
 

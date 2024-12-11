@@ -1,20 +1,28 @@
 package ar.edu.utn.frbb.tup.model;
 
+import ar.edu.utn.frbb.tup.model.exception.CantidadNegativaException;
+import ar.edu.utn.frbb.tup.model.exception.NoAlcanzaException;
+import ar.edu.utn.frbb.tup.persistence.entity.MovimientoEntity;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class Cuenta {
     private long numeroCuenta;
-    LocalDateTime fechaCreacion;
-    int balance;
-    TipoCuenta tipoCuenta;
-    Cliente titular;
-    TipoMoneda moneda;
+    private LocalDateTime fechaCreacion;
+    private double balance;
+    private TipoCuenta tipoCuenta;
+    private Cliente titular;
+    private TipoMoneda moneda;
+    private final List<MovimientoEntity> movimientos;
 
     public Cuenta() {
         this.numeroCuenta = new Random().nextLong();
         this.balance = 0;
         this.fechaCreacion = LocalDateTime.now();
+        this.movimientos = new ArrayList<>();
     }
 
     public Cliente getTitular() {
@@ -24,7 +32,6 @@ public class Cuenta {
     public void setTitular(Cliente titular) {
         this.titular = titular;
     }
-
 
     public TipoCuenta getTipoCuenta() {
         return tipoCuenta;
@@ -44,7 +51,6 @@ public class Cuenta {
         return this;
     }
 
-
     public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
@@ -54,37 +60,58 @@ public class Cuenta {
         return this;
     }
 
-    public int getBalance() {
+    public double getBalance() {
         return balance;
     }
 
-    public Cuenta setBalance(int balance) {
+    public Cuenta setBalance(double balance) {
         this.balance = balance;
         return this;
     }
 
-    public void debitarDeCuenta(int cantidadADebitar) throws NoAlcanzaException, CantidadNegativaException {
+    public List<MovimientoEntity> getMovimientos() {
+        return new ArrayList<>(movimientos); // Retornar copia para evitar modificaciones externas
+    }
+
+    public void debitarDeCuenta(double cantidadADebitar) throws NoAlcanzaException, CantidadNegativaException {
         if (cantidadADebitar < 0) {
-            throw new CantidadNegativaException();
+            throw new CantidadNegativaException("No se puede debitar una cantidad negativa.");
         }
 
         if (balance < cantidadADebitar) {
-            throw new NoAlcanzaException();
+            throw new NoAlcanzaException("Saldo insuficiente para realizar el débito.");
         }
-        this.balance = this.balance - cantidadADebitar;
+
+        balance -= cantidadADebitar;
+        agregarMovimiento("DÉBITO", cantidadADebitar, "Débito por transferencia");
     }
+
+    public void acreditarEnCuenta(double monto) {
+        if (monto < 0) {
+            throw new IllegalArgumentException("No se puede acreditar una cantidad negativa.");
+        }
+
+        balance += monto;
+        agregarMovimiento("CRÉDITO", monto, "Crédito por transferencia");
+    }
+
+    private void agregarMovimiento(String tipo, double monto, String descripcion) {
+        MovimientoEntity movimiento = new MovimientoEntity(
+                this.numeroCuenta,  // Número de cuenta asociado al movimiento
+                tipo,
+                monto,
+                descripcion,
+                LocalDateTime.now()
+        );
+        movimientos.add(movimiento);
+    }
+
 
     public void setNumeroCuenta(long numeroCuenta) {
         this.numeroCuenta = numeroCuenta;
     }
 
-    public void forzaDebitoDeCuenta(int i) {
-        this.balance = this.balance - i;
-    }
-
     public long getNumeroCuenta() {
         return numeroCuenta;
     }
-
-
 }

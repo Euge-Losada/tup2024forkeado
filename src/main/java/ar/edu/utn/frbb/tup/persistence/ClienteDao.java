@@ -9,19 +9,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class ClienteDao extends AbstractBaseDao{
 
-    @Autowired
-    CuentaDao cuentaDao;
+
 
     public Cliente find(long dni, boolean loadComplete) {
-        if (getInMemoryDatabase().get(dni) == null)
+        if (getInMemoryDatabase().get(dni) == null){
             return null;
-        Cliente cliente =   ((ClienteEntity) getInMemoryDatabase().get(dni)).toCliente();
-        if (loadComplete) {
-            for (Cuenta cuenta :
-                    cuentaDao.getCuentasByCliente(dni)) {
-                cliente.addCuenta(cuenta);
-            }
+
         }
+
+        Cliente cliente = ((ClienteEntity) getInMemoryDatabase().get(dni)).toCliente();
+
+
         return cliente;
 
     }
