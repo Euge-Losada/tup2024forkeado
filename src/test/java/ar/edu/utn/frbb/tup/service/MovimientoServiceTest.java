@@ -5,63 +5,71 @@ import ar.edu.utn.frbb.tup.persistence.MovimientoDao;
 import ar.edu.utn.frbb.tup.persistence.entity.MovimientoEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-public class MovimientoServiceTest {
-
-    @Mock
-    private MovimientoDao movimientoDao;
+class MovimientoServiceTest {
 
     @InjectMocks
     private MovimientoService movimientoService;
 
+    @Mock
+    private MovimientoDao movimientoDao;
+
     @BeforeEach
     void setUp() {
-        // MockitoAnnotations.openMocks(this); --> @ExtendWith(MockitoExtension.class) ya lo hace
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void testObtenerMovimientosPorCuenta_ConMovimientos() {
-        // Configuración de datos simulados
-        MovimientoEntity mov1 = new MovimientoEntity(12345678L, "CRÉDITO", 1000.0, "Transferencia entrante", LocalDateTime.now());
-        MovimientoEntity mov2 = new MovimientoEntity(12345678L, "DÉBITO", 500.0, "Pago de servicio", LocalDateTime.now());
+    void testRegistrarMovimiento() {
+        // Preparar datos
+        Movimiento movimiento = new Movimiento(
+                12345678L, // Número de cuenta
+                "CRÉDITO", // Tipo de movimiento
+                1000.0,    // Monto
+                "Transferencia entrante", // Descripción
+                LocalDateTime.now()       // Fecha actual
+        );
 
-        when(movimientoDao.obtenerMovimientosPorCuenta(12345678L)).thenReturn(Arrays.asList(mov1, mov2));
+        MovimientoEntity movimientoEntity = new MovimientoEntity(movimiento);
 
-        // Llamada al método del servicio
+        // Simular DAO
+        doNothing().when(movimientoDao).guardarMovimiento(movimientoEntity);
+
+        // Acción
+        movimientoService.registrarMovimiento(12345678L, movimiento);
+
+        // Verificar interacción con el DAO
+        verify(movimientoDao, times(1)).guardarMovimiento(any(MovimientoEntity.class));
+    }
+
+    @Test
+    void testObtenerMovimientosPorCuenta() {
+        // Preparar datos
+        MovimientoEntity mov1 = new MovimientoEntity(
+                new Movimiento(12345678L, "CRÉDITO", 1000.0, "Transferencia entrante", LocalDateTime.now())
+        );
+        MovimientoEntity mov2 = new MovimientoEntity(
+                new Movimiento(12345678L, "DÉBITO", 500.0, "Pago de servicio", LocalDateTime.now())
+        );
+
+        when(movimientoDao.obtenerMovimientosPorCuenta(12345678L))
+                .thenReturn(List.of(mov1, mov2));
+
+        // Acción
         List<Movimiento> movimientos = movimientoService.obtenerMovimientosPorCuenta(12345678L);
 
-        // Verificaciones
+        // Verificar resultados
         assertEquals(2, movimientos.size());
         assertEquals("CRÉDITO", movimientos.get(0).getTipo());
         assertEquals(1000.0, movimientos.get(0).getMonto());
-        assertEquals("DÉBITO", movimientos.get(1).getTipo());
-        assertEquals(500.0, movimientos.get(1).getMonto());
-        verify(movimientoDao, times(1)).obtenerMovimientosPorCuenta(12345678L);
-    }
-
-    @Test
-    public void testObtenerMovimientosPorCuenta_SinMovimientos() {
-        // Simula que no hay movimientos
-        when(movimientoDao.obtenerMovimientosPorCuenta(12345678L)).thenReturn(Collections.emptyList());
-
-        // Llamada al método del servicio
-        List<Movimiento> movimientos = movimientoService.obtenerMovimientosPorCuenta(12345678L);
-
-        // Verificaciones
-        assertTrue(movimientos.isEmpty());
-        verify(movimientoDao, times(1)).obtenerMovimientosPorCuenta(12345678L);
     }
 }

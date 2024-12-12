@@ -11,6 +11,7 @@ import ar.edu.utn.frbb.tup.model.exception.NoAlcanzaException;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 
 @Service
 public class TransferenciaService {
@@ -27,6 +28,7 @@ public class TransferenciaService {
     @Autowired
     private TransferenciaValidator transferenciaValidator;
 
+    // Método principal de transferencia
     public void transferir(TransferenciaDto transferenciaDto) {
         Cuenta cuentaOrigen = cuentaDao.find(transferenciaDto.getCuentaOrigen());
         Cuenta cuentaDestino = cuentaDao.find(transferenciaDto.getCuentaDestino());
@@ -40,8 +42,8 @@ public class TransferenciaService {
 
         // Calcular la comisión de la transferencia
         double comision = calcularComision(
-                TipoMoneda.valueOf(transferenciaDto.getMoneda().toUpperCase()),
-                transferenciaDto.getMonto()
+                TipoMoneda.valueOf(transferenciaDto.getMoneda().toUpperCase()), // Tipo de moneda
+                transferenciaDto.getMonto()                                    // Monto de la transferencia
         );
 
         double montoConComision = transferenciaDto.getMonto() + comision;
@@ -56,9 +58,11 @@ public class TransferenciaService {
 
         // Registrar movimiento de débito en la cuenta origen
         Movimiento movimientoDebito = new Movimiento(
-                "DÉBITO",
-                montoConComision,
-                "Transferencia realizada a la cuenta " + transferenciaDto.getCuentaDestino()
+                cuentaOrigen.getNumeroCuenta(), // número de cuenta origen
+                "DÉBITO",                       // tipo de movimiento
+                montoConComision,               // monto con la comisión
+                "Transferencia realizada a la cuenta " + transferenciaDto.getCuentaDestino(), // descripción
+                LocalDateTime.now()              // fecha actual
         );
         movimientoService.registrarMovimiento(cuentaOrigen.getNumeroCuenta(), movimientoDebito);
 
@@ -68,9 +72,11 @@ public class TransferenciaService {
             cuentaDao.save(cuentaDestino);
 
             Movimiento movimientoCredito = new Movimiento(
-                    "CRÉDITO",
-                    transferenciaDto.getMonto(),
-                    "Transferencia recibida de la cuenta " + transferenciaDto.getCuentaOrigen()
+                    cuentaDestino.getNumeroCuenta(),  // número de cuenta destino
+                    "CRÉDITO",                        // tipo de movimiento
+                    transferenciaDto.getMonto(),      // monto transferido
+                    "Transferencia recibida de la cuenta " + transferenciaDto.getCuentaOrigen(), // descripción
+                    LocalDateTime.now()                // fecha actual
             );
             movimientoService.registrarMovimiento(cuentaDestino.getNumeroCuenta(), movimientoCredito);
         } else {
@@ -80,12 +86,13 @@ public class TransferenciaService {
         }
     }
 
+    // Método para calcular la comisión
     private double calcularComision(TipoMoneda moneda, double monto) {
         if (moneda == TipoMoneda.PESOS && monto > 1_000_000) {
-            return monto * 0.02; // 2% de comisión
+            return monto * 0.02; // 2% de comisión para montos mayores a 1 millón de pesos
         } else if (moneda == TipoMoneda.DOLARES && monto > 5_000) {
-            return monto * 0.005; // 0.5% de comisión
+            return monto * 0.005; // 0.5% de comisión para montos mayores a 5,000 dólares
         }
-        return 0;
+        return 0; // Si no se cumple ninguna de las condiciones anteriores, no hay comisión
     }
 }

@@ -96,15 +96,22 @@ public class Cuenta {
     }
 
     private void agregarMovimiento(String tipo, double monto, String descripcion) {
-        MovimientoEntity movimiento = new MovimientoEntity(
-                this.numeroCuenta,  // Número de cuenta asociado al movimiento
-                tipo,
-                monto,
-                descripcion,
-                LocalDateTime.now()
+        // Crear una instancia de Movimiento con los datos proporcionados
+        Movimiento movimiento = new Movimiento(
+                this.numeroCuenta, // Número de cuenta
+                tipo,              // Tipo de movimiento (CRÉDITO o DÉBITO)
+                monto,             // Monto del movimiento
+                descripcion,       // Descripción breve del movimiento
+                LocalDateTime.now() // Fecha y hora actual
         );
-        movimientos.add(movimiento);
+
+        // Usar Movimiento para crear un MovimientoEntity
+        MovimientoEntity movimientoEntity = new MovimientoEntity(movimiento);
+
+        // Agregar el movimiento a la lista
+        movimientos.add(movimientoEntity);
     }
+
 
 
     public void setNumeroCuenta(long numeroCuenta) {

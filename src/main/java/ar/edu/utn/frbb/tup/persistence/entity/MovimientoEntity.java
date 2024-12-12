@@ -1,23 +1,25 @@
 package ar.edu.utn.frbb.tup.persistence.entity;
 
+import ar.edu.utn.frbb.tup.model.Movimiento;
+
 import java.time.LocalDateTime;
 
-public class MovimientoEntity {
+public class MovimientoEntity extends BaseEntity {
     private long numeroCuenta;    // Relación directa con la cuenta
     private String tipo;
     private double monto;
     private String descripcion;
     private LocalDateTime fecha;
 
-    public MovimientoEntity() {}
-
-    public MovimientoEntity(long numeroCuenta, String tipo, double monto, String descripcion, LocalDateTime fecha) {
-        this.numeroCuenta = numeroCuenta;
-        this.tipo = tipo;
-        this.monto = monto;
-        this.descripcion = descripcion;
-        this.fecha = fecha;
+    public MovimientoEntity(Movimiento movimiento) {
+        super(movimiento.getIdMovimiento()); // Asigna el ID desde Movimiento
+        this.numeroCuenta = movimiento.getNumeroCuenta();  // Asigna el número de cuenta desde Movimiento
+        this.tipo = movimiento.getTipo();                  // Asigna el tipo desde Movimiento
+        this.monto = movimiento.getMonto();                // Asigna el monto desde Movimiento
+        this.descripcion = movimiento.getDescripcion();    // Asigna la descripción desde Movimiento
+        this.fecha = movimiento.getFecha();                // Asigna la fecha desde Movimiento
     }
+
 
     // Getters y Setters
     public long getNumeroCuenta() {

@@ -2,10 +2,12 @@ package ar.edu.utn.frbb.tup.persistence;
 
 import ar.edu.utn.frbb.tup.model.Cliente;
 import ar.edu.utn.frbb.tup.model.TipoPersona;
+import ar.edu.utn.frbb.tup.persistence.implementation.ClienteDaoImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,11 +16,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ClienteDaoTest {
 
+    @Mock
     private ClienteDao clienteDao;
 
     @BeforeEach
     public void setUp() {
-        clienteDao = new ClienteDao();
+        clienteDao = new ClienteDaoImpl();
+
     }
 
     @Test

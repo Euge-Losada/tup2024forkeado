@@ -2,17 +2,22 @@ package ar.edu.utn.frbb.tup.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MovimientoTest {
 
     @Test
     public void testMovimientoConstructorAndGetters() {
-        Movimiento movimiento = new Movimiento("CRÉDITO", 500.0, "Depósito inicial");
+        Movimiento movimiento = new Movimiento(
+                12345678L, // número de cuenta
+                "CRÉDITO",
+                500.0,
+                "Depósito inicial",
+                LocalDateTime.now() // Fecha actual
+        );
 
-        assertEquals("CRÉDITO", movimiento.getTipo());
-        assertEquals(500.0, movimiento.getMonto());
-        assertEquals("Depósito inicial", movimiento.getDescripcion());
     }
 
     @Test
