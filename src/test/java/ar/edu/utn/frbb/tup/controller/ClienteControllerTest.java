@@ -12,6 +12,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
@@ -38,7 +40,7 @@ class ClienteControllerTest {
         clienteDto.setNombre("Juan");
         clienteDto.setApellido("Pérez");
         clienteDto.setDni(12345678);
-        clienteDto.setFechaNacimiento("1990-01-01");
+        clienteDto.setFechaNacimiento(LocalDate.parse("1990-01-01"));
 
         Cliente clienteMock = new Cliente(clienteDto);
         Mockito.doNothing().when(clienteValidator).validate(clienteDto);
