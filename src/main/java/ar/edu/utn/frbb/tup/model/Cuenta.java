@@ -3,6 +3,7 @@ package ar.edu.utn.frbb.tup.model;
 import ar.edu.utn.frbb.tup.model.exception.CantidadNegativaException;
 import ar.edu.utn.frbb.tup.model.exception.NoAlcanzaException;
 import ar.edu.utn.frbb.tup.persistence.entity.MovimientoEntity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,16 +15,20 @@ public class Cuenta {
     private LocalDateTime fechaCreacion;
     private double balance;
     private TipoCuenta tipoCuenta;
+    @JsonBackReference
     private Cliente titular;
     private TipoMoneda moneda;
     private final List<MovimientoEntity> movimientos;
 
-    public Cuenta() {
-        this.numeroCuenta = new Random().nextLong();
-        this.balance = 0;
-        this.fechaCreacion = LocalDateTime.now();
-        this.movimientos = new ArrayList<>();
+    public Cuenta(TipoCuenta tipoCuenta, TipoMoneda moneda, double balance) {
+        this.numeroCuenta = new Random().nextLong();  // Genera un número de cuenta aleatorio
+        this.fechaCreacion = LocalDateTime.now();     // Establece la fecha de creación
+        this.tipoCuenta = tipoCuenta;                 // Asigna el tipo de cuenta
+        this.moneda = moneda;                         // Asigna la moneda
+        this.balance = balance;                       // Asigna el balance inicial
+        this.movimientos = new ArrayList<>();         // Inicializa la lista de movimientos
     }
+
 
     public Cliente getTitular() {
         return titular;

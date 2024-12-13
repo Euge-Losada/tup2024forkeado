@@ -1,8 +1,6 @@
 package ar.edu.utn.frbb.tup.persistence.entity;
 
-import ar.edu.utn.frbb.tup.model.Cliente;
-import ar.edu.utn.frbb.tup.model.Cuenta;
-import ar.edu.utn.frbb.tup.model.TipoPersona;
+import ar.edu.utn.frbb.tup.model.*;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import ar.edu.utn.frbb.tup.persistence.entity.BaseEntity;
 
@@ -17,6 +15,7 @@ public class ClienteEntity extends BaseEntity {
     private final String apellido;
     private final LocalDate fechaAlta;
     private final LocalDate fechaNacimiento;
+    private final String banco;
     private List<Long> cuentas;
 
     public ClienteEntity(Cliente cliente) {
@@ -26,6 +25,7 @@ public class ClienteEntity extends BaseEntity {
         this.apellido = cliente.getApellido();
         this.fechaAlta = cliente.getFechaAlta();
         this.fechaNacimiento = cliente.getFechaNacimiento();
+        this.banco = cliente.getBanco();
         this.cuentas = new ArrayList<>();
         if (cliente.getCuentas() != null && !cliente.getCuentas().isEmpty()) {
             for (Cuenta c: cliente.getCuentas()) {
@@ -43,7 +43,25 @@ public class ClienteEntity extends BaseEntity {
         cliente.setTipoPersona(TipoPersona.fromString(this.tipoPersona));
         cliente.setFechaAlta(this.fechaAlta);
         cliente.setFechaNacimiento(this.fechaNacimiento);
+        cliente.setBanco(this.banco);
+
+        // Cargar cuentas si existen
+        if (this.cuentas != null && !this.cuentas.isEmpty()) {
+            for (Long numeroCuenta : this.cuentas) {
+                Cuenta cuenta = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 0.0);
+                cuenta.setNumeroCuenta(numeroCuenta); // Solo asigna el número de cuenta aquí
+                cliente.addCuenta(cuenta);
+            }
+        }
 
         return cliente;
     }
+
+    public List<Long> getCuentas() {
+        return cuentas;
+    }
+    public void setCuentas(List<Long> cuentas) {
+        this.cuentas = cuentas;
+    }
+
 }

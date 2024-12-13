@@ -2,6 +2,7 @@ package ar.edu.utn.frbb.tup.controller.handler;
 
 import ar.edu.utn.frbb.tup.controller.dto.TransferenciaResponseDto;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import ar.edu.utn.frbb.tup.model.exception.InvalidDniException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,15 +14,25 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ControllerAdvice
 public class TupResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(BusinessLogicException.class)
-    protected ResponseEntity<TransferenciaResponseDto> handleBusinessLogicException(BusinessLogicException ex) {
-        TransferenciaResponseDto errorResponse = new TransferenciaResponseDto("ERROR", ex.getMessage());
-        return ResponseEntity.badRequest().body(errorResponse);
+    @ExceptionHandler(InvalidDniException.class)
+    public ResponseEntity<CustomApiError> handleInvalidDniException(InvalidDniException ex, WebRequest request) {
+        return ResponseEntity.badRequest().body(new CustomApiError(4001, ex.getMessage()));
     }
 
-    @ExceptionHandler(Exception.class)
-    protected ResponseEntity<TransferenciaResponseDto> handleGenericException(Exception ex) {
-        TransferenciaResponseDto errorResponse = new TransferenciaResponseDto("ERROR", "Error inesperado: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+
+
+    @ExceptionHandler(BusinessLogicException.class)
+    public ResponseEntity<CustomApiError> handleBusinessLogicException(BusinessLogicException ex, WebRequest request) {
+        CustomApiError error = new CustomApiError(4000, ex.getMessage());
+        return ResponseEntity.badRequest().body(error);
     }
+
+
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<CustomApiError> handleGenericException(Exception ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new CustomApiError(5000, "Error inesperado: " + ex.getMessage()));
+    }
+
 }

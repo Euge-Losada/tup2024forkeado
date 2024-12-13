@@ -1,38 +1,55 @@
 package ar.edu.utn.frbb.tup.controller.handler;
 
-import ar.edu.utn.frbb.tup.controller.dto.TransferenciaResponseDto;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import ar.edu.utn.frbb.tup.model.exception.InvalidDniException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@ExtendWith(MockitoExtension.class)
-public class TupResponseEntityExceptionHandlerTest {
+class TupResponseEntityExceptionHandlerTest {
 
     private final TupResponseEntityExceptionHandler handler = new TupResponseEntityExceptionHandler();
 
     @Test
-    public void testHandleBusinessLogicException() {
-        BusinessLogicException exception = new BusinessLogicException("Error de lógica");
+    void handleBusinessLogicException() {
+        // Preparar datos
+        BusinessLogicException exception = new BusinessLogicException("Error en la lógica de negocio");
 
-        ResponseEntity<TransferenciaResponseDto> response = handler.handleBusinessLogicException(exception);
+        // Invocar el manejador
+        ResponseEntity<CustomApiError> response = handler.handleBusinessLogicException(exception, null);
 
-        assertEquals(400, response.getStatusCodeValue());
-        assertEquals("ERROR", response.getBody().getEstado());
-        assertEquals("Error de lógica", response.getBody().getMensaje());
+        // Verificar resultados
+        assertEquals(4000, response.getBody().getErrorCode());
+        assertEquals("Error en la lógica de negocio", response.getBody().getErrorMessage());
+        assertEquals(400, response.getStatusCode().value());
     }
 
     @Test
-    public void testHandleGenericException() {
-        Exception exception = new Exception("Error inesperado");
+    void handleInvalidDniException() {
+        // Preparar datos
+        InvalidDniException exception = new InvalidDniException("DNI inválido");
 
-        ResponseEntity<TransferenciaResponseDto> response = handler.handleGenericException(exception);
+        // Invocar el manejador
+        ResponseEntity<CustomApiError> response = handler.handleInvalidDniException(exception, null);
 
-        assertEquals(500, response.getStatusCodeValue());
-        assertEquals("ERROR", response.getBody().getEstado());
-        assertTrue(response.getBody().getMensaje().contains("Error inesperado"));
+        // Verificar resultados
+        assertEquals(4001, response.getBody().getErrorCode());
+        assertEquals("DNI inválido", response.getBody().getErrorMessage());
+        assertEquals(400, response.getStatusCode().value());
+    }
+
+    @Test
+    void handleGenericException() {
+        // Preparar datos
+        Exception exception = new Exception("Error genérico");
+
+        // Invocar el manejador
+        ResponseEntity<CustomApiError> response = handler.handleGenericException(exception, null);
+
+        // Verificar resultados
+        CustomApiError error = (CustomApiError) response.getBody();
+        assertEquals("Error inesperado: Error genérico", error.getErrorMessage());
+        assertEquals(500, response.getStatusCode().value());
     }
 }

@@ -37,12 +37,10 @@ public class CuentaEntity extends BaseEntity{
 
 
     public Cuenta toCuenta(ClienteDao clienteDao) {
-        Cuenta cuenta = new Cuenta();
-        cuenta.setBalance(this.balance);
+        Cuenta cuenta = new Cuenta(TipoCuenta.valueOf(this.tipoCuenta), TipoMoneda.valueOf(this.tipoMoneda), this.balance);
         cuenta.setNumeroCuenta(this.numeroCuenta);
-        cuenta.setTipoCuenta(TipoCuenta.valueOf(this.tipoCuenta));
         cuenta.setFechaCreacion(this.fechaCreacion);
-        cuenta.setMoneda(TipoMoneda.valueOf(this.tipoMoneda));
+
 
         // Buscar el Cliente asociado al titular (DNI) y asignarlo
         if (this.titular != null) {

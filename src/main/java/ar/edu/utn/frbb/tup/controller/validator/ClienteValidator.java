@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.Period;
 
+
 @Component
 public class ClienteValidator {
 
@@ -27,19 +28,14 @@ public class ClienteValidator {
         }
     }
 
-    private void validateFechaNacimiento(String fechaNacimiento) {
-        try {
-            LocalDate fecha = LocalDate.parse(fechaNacimiento);
-            if (fecha.isAfter(LocalDate.now())) {
-                throw new IllegalArgumentException("La fecha de nacimiento no puede ser futura");
-            }
+    private void validateFechaNacimiento(LocalDate fechaNacimiento) {
+        if (fechaNacimiento.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La fecha de nacimiento no puede ser futura");
+        }
 
-            int edad = Period.between(fecha, LocalDate.now()).getYears();
-            if (edad < 18) {
-                throw new IllegalArgumentException("El cliente debe ser mayor de 18 años");
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error en el formato de fecha");
+        int edad = Period.between(fechaNacimiento, LocalDate.now()).getYears();
+        if (edad < 18) {
+            throw new IllegalArgumentException("El cliente debe ser mayor de 18 años");
         }
     }
 

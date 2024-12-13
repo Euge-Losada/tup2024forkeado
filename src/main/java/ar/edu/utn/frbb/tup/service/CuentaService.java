@@ -7,6 +7,7 @@ import ar.edu.utn.frbb.tup.model.TipoCuenta;
 import ar.edu.utn.frbb.tup.model.TipoMoneda;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
 import ar.edu.utn.frbb.tup.model.exception.CuentaAlreadyExistsException;
+import ar.edu.utn.frbb.tup.persistence.ClienteDao;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,42 +21,46 @@ public class CuentaService {
     @Autowired
     private ClienteService clienteService;
 
-    /**
-     * Dar de alta una nueva cuenta a partir de un DTO.
-     */
+    @Autowired
+    private ClienteDao clienteDao;
+
     public Cuenta darDeAltaCuenta(CuentaDto cuentaDto) throws CuentaAlreadyExistsException {
-        // Mapear DTO a entidad Cuenta
         Cuenta cuenta = mapearDtoACuenta(cuentaDto);
 
-        // Verificar si ya existe una cuenta con ese número
         if (cuentaDao.find(cuenta.getNumeroCuenta()) != null) {
-            throw new CuentaAlreadyExistsException("La cuenta con número " + cuenta.getNumeroCuenta() + " ya existe.");
+            throw new CuentaAlreadyExistsException("La cuenta ya existe.");
         }
 
-        // Asociar cuenta al cliente titular
+        // Buscar el cliente titular
         Cliente clienteTitular = clienteService.buscarClientePorDni(cuentaDto.getDniTitular());
         if (clienteTitular == null) {
-            throw new BusinessLogicException("El cliente titular no existe.");
+            throw new BusinessLogicException("El cliente no existe.");
         }
-        clienteTitular.addCuenta(cuenta);
+
+        if (!clienteTitular.getCuentas().contains(cuenta)) {
+            clienteTitular.addCuenta(cuenta);  // Solo agregar la cuenta si no está asociada aún
+        }
+
 
         // Guardar la cuenta en la base de datos
         cuentaDao.save(cuenta);
+        System.out.println("Cuenta guardada: " + cuenta.getNumeroCuenta());
+
+        clienteDao.save(clienteTitular); // Actualizar el cliente con la cuenta asociada
+        System.out.println("Cliente actualizado con cuenta: " + cuenta.getNumeroCuenta());
 
         return cuenta;
     }
 
-    /**
-     * Mapear CuentaDto a Cuenta.
-     */
+
     private Cuenta mapearDtoACuenta(CuentaDto cuentaDto) {
-        Cuenta cuenta = new Cuenta();
+        Cuenta cuenta = new Cuenta(TipoCuenta.valueOf(cuentaDto.getTipoCuenta().toUpperCase()),
+                TipoMoneda.valueOf(cuentaDto.getMoneda().toUpperCase()),
+                cuentaDto.getBalanceInicial());
+
         cuenta.setNumeroCuenta(cuentaDto.getNumeroCuenta() != 0 ? cuentaDto.getNumeroCuenta() : System.currentTimeMillis());
-        cuenta.setTipoCuenta(TipoCuenta.valueOf(cuentaDto.getTipoCuenta().toUpperCase()));
-        cuenta.setMoneda(TipoMoneda.valueOf(cuentaDto.getMoneda().toUpperCase()));
-        cuenta.setBalance(cuentaDto.getBalanceInicial());
         return cuenta;
     }
-}
 
+}
 

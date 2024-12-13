@@ -2,13 +2,12 @@ package ar.edu.utn.frbb.tup.controller.dto;
 
 
 public class TransferenciaDto {
-    // Campos relacionados con la solicitud de transferencia
+
     private long cuentaOrigen;
     private long cuentaDestino;
     private double monto;
     private String moneda;
 
-    // Campos relacionados con la respuesta de la transferencia
     private String estado;
     private String mensaje;
 

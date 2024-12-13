@@ -1,6 +1,7 @@
 package ar.edu.utn.frbb.tup.model;
 
 import ar.edu.utn.frbb.tup.controller.dto.ClienteDto;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -11,13 +12,15 @@ public class Cliente extends Persona{
     private TipoPersona tipoPersona;
     private String banco;
     private LocalDate fechaAlta;
+    @JsonManagedReference
     private Set<Cuenta> cuentas = new HashSet<>();
 
     public Cliente() {
         super();
     }
     public Cliente(ClienteDto clienteDto) {
-        super(clienteDto.getDni(), clienteDto.getApellido(), clienteDto.getNombre(), clienteDto.getFechaNacimiento());
+        super(clienteDto.getDni(), clienteDto.getApellido(), clienteDto.getNombre(), clienteDto.getFechaNacimiento().toString());
+
         this.fechaAlta = LocalDate.now();
         this.banco = clienteDto.getBanco();
         this.tipoPersona = TipoPersona.fromString(clienteDto.getTipoPersona());
@@ -52,8 +55,10 @@ public class Cliente extends Persona{
     }
 
     public void addCuenta(Cuenta cuenta) {
-        this.cuentas.add(cuenta);
-        cuenta.setTitular(this);
+        if (cuenta != null && !this.cuentas.contains(cuenta)) {
+            this.cuentas.add(cuenta);
+            cuenta.setTitular(this);
+        }
     }
 
     public boolean tieneCuenta(TipoCuenta tipoCuenta, TipoMoneda moneda) {

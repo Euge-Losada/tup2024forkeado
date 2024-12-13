@@ -3,9 +3,11 @@ package ar.edu.utn.frbb.tup.controller;
 import ar.edu.utn.frbb.tup.controller.dto.ClienteDto;
 import ar.edu.utn.frbb.tup.controller.validator.ClienteValidator;
 import ar.edu.utn.frbb.tup.model.Cliente;
-import ar.edu.utn.frbb.tup.model.exception.ClienteAlreadyExistsException;
+import ar.edu.utn.frbb.tup.model.TipoCuenta;
+import ar.edu.utn.frbb.tup.model.TipoMoneda;
 import ar.edu.utn.frbb.tup.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,12 +20,17 @@ public class ClienteController {
     @Autowired
     private ClienteValidator clienteValidator;
 
-
     @PostMapping
-    public Cliente crearCliente(@RequestBody ClienteDto clienteDto) throws ClienteAlreadyExistsException {
-        clienteValidator.validate(clienteDto);
-        return clienteService.darDeAltaCliente(clienteDto);
+    public ResponseEntity<Object> crearCliente(@RequestBody ClienteDto clienteDto) {
+        clienteValidator.validate(clienteDto); // Validación de datos
+        Cliente nuevoCliente = clienteService.darDeAltaCliente(clienteDto);
+        return ResponseEntity.ok("Cliente creado con éxito: " + nuevoCliente.getNombre());
     }
+    @PostMapping ("/con-cuenta")
+    public Cliente crearClienteConCuenta(@RequestBody ClienteDto clienteDto) {
+        return clienteService.crearClienteConCuenta(clienteDto);
+    }
+
     @GetMapping("/{dni}")
     public Cliente getCliente(@PathVariable long dni) {
         clienteValidator.validateDni(dni);

@@ -2,44 +2,23 @@ package ar.edu.utn.frbb.tup.persistence.implementation;
 
 import ar.edu.utn.frbb.tup.model.Cuenta;
 import ar.edu.utn.frbb.tup.persistence.AbstractBaseDao;
-import ar.edu.utn.frbb.tup.persistence.ClienteDao;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
-import ar.edu.utn.frbb.tup.persistence.entity.CuentaEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Repository
 public class CuentaDaoImpl extends AbstractBaseDao implements CuentaDao {
 
-    @Autowired
-    private ClienteDao clienteDao;
+    @Override
+    public Cuenta find(long numeroCuenta) {
+        return (Cuenta) getInMemoryDatabase().get(numeroCuenta);  // Recupera la cuenta por su número
+    }
 
     @Override
     public void save(Cuenta cuenta) {
-        CuentaEntity entity = new CuentaEntity(cuenta);
-        getInMemoryDatabase().put(entity.getId(), entity);
+        getInMemoryDatabase().put(cuenta.getNumeroCuenta(), cuenta);  // Guarda la cuenta en memoria
     }
 
-    @Override
-    public Cuenta find(long numeroCuenta) {
-        if (getInMemoryDatabase().get(numeroCuenta) == null) {
-            return null;
-        }
-        return ((CuentaEntity) getInMemoryDatabase().get(numeroCuenta)).toCuenta(clienteDao);
-    }
-
-    @Override
-    public List<Cuenta> getCuentasByCliente(long dniTitular) {
-        return getInMemoryDatabase().values().stream()
-                .map(entity -> (CuentaEntity) entity)
-                .filter(entity -> entity.getTitular().equals(dniTitular))
-                .map(entity -> entity.toCuenta(clienteDao))
-                .collect(Collectors.toList());
-    }
-
+    // Implementación del método getEntityName() de AbstractBaseDao
     @Override
     protected String getEntityName() {
         return "CUENTA";

@@ -7,5 +7,5 @@ import java.util.List;
 public interface CuentaDao {
     void save(Cuenta cuenta);
     Cuenta find(long numeroCuenta);
-    List<Cuenta> getCuentasByCliente(long dniTitular);
+
 }
