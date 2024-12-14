@@ -6,9 +6,7 @@ import ar.edu.utn.frbb.tup.persistence.entity.MovimientoEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class Cuenta {
     private long numeroCuenta;
@@ -19,15 +17,30 @@ public class Cuenta {
     private Cliente titular;
     private TipoMoneda moneda;
     private final List<MovimientoEntity> movimientos;
+    private static final Set<Long> numerosDeCuentaUsados = new HashSet<>();
+
 
     public Cuenta(TipoCuenta tipoCuenta, TipoMoneda moneda, double balance) {
-        this.numeroCuenta = new Random().nextLong();  // Genera un número de cuenta aleatorio
+        this.numeroCuenta = generarNumeroCuentaUnico();//new Random().nextLong();  // Genera un número de cuenta aleatorio
         this.fechaCreacion = LocalDateTime.now();     // Establece la fecha de creación
         this.tipoCuenta = tipoCuenta;                 // Asigna el tipo de cuenta
         this.moneda = moneda;                         // Asigna la moneda
         this.balance = balance;                       // Asigna el balance inicial
         this.movimientos = new ArrayList<>();         // Inicializa la lista de movimientos
     }
+
+    public long generarNumeroCuentaUnico() {
+        Random random = new Random();
+        long numeroCuenta;
+
+        do {
+            numeroCuenta = 100_000_000L + random.nextInt(900_000_000); // Número entre 100000000 y 999999999
+        } while (numerosDeCuentaUsados.contains(numeroCuenta)); // Verifica duplicados
+
+        numerosDeCuentaUsados.add(numeroCuenta); // Registra el número generado
+        return numeroCuenta;
+    }
+
 
 
     public Cliente getTitular() {
@@ -126,4 +139,5 @@ public class Cuenta {
     public long getNumeroCuenta() {
         return numeroCuenta;
     }
+
 }

@@ -51,9 +51,12 @@ public class TransferenciaService {
         // Realizar el débito en la cuenta origen
         try {
             cuentaOrigen.debitarDeCuenta(montoConComision);
-        } catch (CantidadNegativaException | NoAlcanzaException e) {
+        } catch (CantidadNegativaException e) {
+            throw new BusinessLogicException(e.getMessage()); // Mensaje tal cual para monto negativo
+        } catch (NoAlcanzaException e) {
             throw new BusinessLogicException("La cuenta origen no tiene fondos suficientes: " + e.getMessage());
         }
+
         cuentaDao.save(cuentaOrigen);
 
         // Registrar movimiento de débito en la cuenta origen

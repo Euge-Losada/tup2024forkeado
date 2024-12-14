@@ -2,7 +2,9 @@ package ar.edu.utn.frbb.tup.controller.handler;
 
 import ar.edu.utn.frbb.tup.controller.dto.TransferenciaResponseDto;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import ar.edu.utn.frbb.tup.model.exception.CuentaAlreadyExistsException;
 import ar.edu.utn.frbb.tup.model.exception.InvalidDniException;
+import ar.edu.utn.frbb.tup.model.exception.TipoCuentaAlreadyExistsException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,19 @@ public class TupResponseEntityExceptionHandler extends ResponseEntityExceptionHa
         return ResponseEntity.badRequest().body(new CustomApiError(4001, ex.getMessage()));
     }
 
+    // Manejo de excepciones de tipo CuentaAlreadyExistsException
+    @ExceptionHandler(CuentaAlreadyExistsException.class)
+    public ResponseEntity<CustomApiError> handleCuentaAlreadyExistsException(CuentaAlreadyExistsException ex) {
+        CustomApiError error = new CustomApiError(4002, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    // Manejo de excepciones de tipo TipoCuentaAlreadyExistsException
+    @ExceptionHandler(TipoCuentaAlreadyExistsException.class)
+    public ResponseEntity<CustomApiError> handleTipoCuentaAlreadyExistsException(TipoCuentaAlreadyExistsException ex) {
+        CustomApiError error = new CustomApiError(4003, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
 
 
     @ExceptionHandler(BusinessLogicException.class)
@@ -34,5 +49,7 @@ public class TupResponseEntityExceptionHandler extends ResponseEntityExceptionHa
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new CustomApiError(5000, "Error inesperado: " + ex.getMessage()));
     }
+
+
 
 }

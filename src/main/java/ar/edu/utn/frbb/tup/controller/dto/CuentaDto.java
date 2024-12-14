@@ -1,20 +1,20 @@
 package ar.edu.utn.frbb.tup.controller.dto;
 
 public class CuentaDto {
-    private long numeroCuenta;
+    //private long numeroCuenta;
     private long dniTitular;
     private String tipoCuenta;
     private String moneda;
     private double balanceInicial;
 
     // Getters y Setters
-    public long getNumeroCuenta() {
+    /*public long getNumeroCuenta() {
         return numeroCuenta;
     }
 
     public void setNumeroCuenta(long numeroCuenta) {
         this.numeroCuenta = numeroCuenta;
-    }
+    }*/
 
     public long getDniTitular() {
         return dniTitular;

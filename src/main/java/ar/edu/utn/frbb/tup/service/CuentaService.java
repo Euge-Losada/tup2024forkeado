@@ -7,6 +7,7 @@ import ar.edu.utn.frbb.tup.model.TipoCuenta;
 import ar.edu.utn.frbb.tup.model.TipoMoneda;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
 import ar.edu.utn.frbb.tup.model.exception.CuentaAlreadyExistsException;
+import ar.edu.utn.frbb.tup.model.exception.TipoCuentaAlreadyExistsException;
 import ar.edu.utn.frbb.tup.persistence.ClienteDao;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,42 +26,36 @@ public class CuentaService {
     private ClienteDao clienteDao;
 
     public Cuenta darDeAltaCuenta(CuentaDto cuentaDto) throws CuentaAlreadyExistsException {
-        Cuenta cuenta = mapearDtoACuenta(cuentaDto);
+        // Crear una nueva cuenta mapeada desde el DTO
+        Cuenta cuenta = new Cuenta(
+                TipoCuenta.valueOf(cuentaDto.getTipoCuenta().toUpperCase()),
+                TipoMoneda.valueOf(cuentaDto.getMoneda().toUpperCase()),
+                cuentaDto.getBalanceInicial()
+        );
 
-        if (cuentaDao.find(cuenta.getNumeroCuenta()) != null) {
-            throw new CuentaAlreadyExistsException("La cuenta ya existe.");
-        }
+        // Generar automáticamente el número de cuenta
+        cuenta.setNumeroCuenta(cuenta.generarNumeroCuentaUnico());
 
-        // Buscar el cliente titular
+        // Buscar al cliente titular
         Cliente clienteTitular = clienteService.buscarClientePorDni(cuentaDto.getDniTitular());
         if (clienteTitular == null) {
-            throw new BusinessLogicException("El cliente no existe.");
+            throw new BusinessLogicException("El cliente con DNI " + cuentaDto.getDniTitular() + " no existe.");
         }
 
-        if (!clienteTitular.getCuentas().contains(cuenta)) {
-            clienteTitular.addCuenta(cuenta);  // Solo agregar la cuenta si no está asociada aún
+        // Verificar si ya existe una cuenta del mismo tipo y moneda para este cliente
+        boolean existeCuentaDelMismoTipoYMoneda = clienteTitular.getCuentas().stream()
+                .anyMatch(c -> c.getTipoCuenta().equals(TipoCuenta.valueOf(cuentaDto.getTipoCuenta().toUpperCase())) &&
+                        c.getMoneda().equals(TipoMoneda.valueOf(cuentaDto.getMoneda().toUpperCase())));
+
+        if (existeCuentaDelMismoTipoYMoneda) {
+            throw new CuentaAlreadyExistsException("El cliente ya tiene una cuenta del tipo " + cuentaDto.getTipoCuenta() + " y moneda " + cuentaDto.getMoneda());
         }
 
-
-        // Guardar la cuenta en la base de datos
+        // Asociar la cuenta al cliente y guardar
+        clienteTitular.addCuenta(cuenta);
         cuentaDao.save(cuenta);
-        System.out.println("Cuenta guardada: " + cuenta.getNumeroCuenta());
-
-        clienteDao.save(clienteTitular); // Actualizar el cliente con la cuenta asociada
-        System.out.println("Cliente actualizado con cuenta: " + cuenta.getNumeroCuenta());
+        clienteDao.save(clienteTitular);
 
         return cuenta;
     }
-
-
-    private Cuenta mapearDtoACuenta(CuentaDto cuentaDto) {
-        Cuenta cuenta = new Cuenta(TipoCuenta.valueOf(cuentaDto.getTipoCuenta().toUpperCase()),
-                TipoMoneda.valueOf(cuentaDto.getMoneda().toUpperCase()),
-                cuentaDto.getBalanceInicial());
-
-        cuenta.setNumeroCuenta(cuentaDto.getNumeroCuenta() != 0 ? cuentaDto.getNumeroCuenta() : System.currentTimeMillis());
-        return cuenta;
-    }
-
 }
-

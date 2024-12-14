@@ -35,6 +35,9 @@ public class CuentaValidator {
         if (cuentaDto.getDniTitular() <= 0) {
             throw new IllegalArgumentException("El DNI del titular debe ser un número positivo.");
         }
+
+
+
     }
 }
 

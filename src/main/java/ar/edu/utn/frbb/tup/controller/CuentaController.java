@@ -1,6 +1,7 @@
 package ar.edu.utn.frbb.tup.controller;
 
 import ar.edu.utn.frbb.tup.controller.dto.CuentaResponseDto;
+import ar.edu.utn.frbb.tup.controller.handler.CustomApiError;
 import ar.edu.utn.frbb.tup.controller.validator.CuentaValidator;
 import ar.edu.utn.frbb.tup.model.exception.CuentaAlreadyExistsException;
 import ar.edu.utn.frbb.tup.model.exception.TipoCuentaAlreadyExistsException;
@@ -24,29 +25,29 @@ public class CuentaController {
     private CuentaValidator cuentaValidator;
 
     @PostMapping
-    public ResponseEntity<CuentaResponseDto> crearCuenta(@RequestBody CuentaDto cuentaDto)
-            throws CuentaAlreadyExistsException, TipoCuentaAlreadyExistsException {
-        // Validar los datos de la cuenta
-        cuentaValidator.validate(cuentaDto);
+    public ResponseEntity<?> crearCuenta(@RequestBody CuentaDto cuentaDto) {
+        try {
+            cuentaValidator.validate(cuentaDto);
+            Cuenta cuentaCreada = cuentaService.darDeAltaCuenta(cuentaDto);
 
-        Cuenta cuentaCreada = cuentaService.darDeAltaCuenta(cuentaDto);
+            // Crear el DTO de respuesta
+            CuentaResponseDto responseDto = new CuentaResponseDto(
+                    cuentaCreada.getNumeroCuenta(),
+                    cuentaCreada.getTipoCuenta().toString(),
+                    cuentaCreada.getMoneda().toString(),
+                    cuentaCreada.getBalance(),
+                    cuentaCreada.getTitular().getNombre() + " " + cuentaCreada.getTitular().getApellido()
+            );
 
-        // Crear el DTO de respuesta con nombre completo
-        String titularNombreCompleto = cuentaCreada.getTitular() != null
-                ? cuentaCreada.getTitular().getNombre() + " " + cuentaCreada.getTitular().getApellido()
-                : null;
+            return ResponseEntity.ok(responseDto);
 
-        // Crear el DTO de respuesta
-        CuentaResponseDto responseDto = new CuentaResponseDto(
-                cuentaCreada.getNumeroCuenta(),
-                cuentaCreada.getTipoCuenta().toString(),
-                cuentaCreada.getMoneda().toString(),
-                cuentaCreada.getBalance(),
-                titularNombreCompleto
-        );
+        } catch (CuentaAlreadyExistsException ex) {
+            CustomApiError error = new CustomApiError(4002, "Error: " + ex.getMessage());
+            return ResponseEntity.badRequest().body(error);
 
-        return ResponseEntity.ok(responseDto);
+        }
     }
+
 
 }
 
