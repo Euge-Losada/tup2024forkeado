@@ -9,7 +9,7 @@ public class ClienteDto {
     private long dni;
     private String nombre;
     private String apellido;
-    private LocalDate fechaNacimiento;
+    private String fechaNacimiento;
     private String tipoPersona;
     private String banco;
     private String tipoCuenta;
@@ -42,11 +42,11 @@ public class ClienteDto {
         this.apellido = apellido;
     }
 
-    public LocalDate getFechaNacimiento() {
+    public String getFechaNacimiento() {
         return fechaNacimiento;
     }
 
-    public void setFechaNacimiento(LocalDate fechaNacimiento) {
+    public void setFechaNacimiento(String fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
     }
 

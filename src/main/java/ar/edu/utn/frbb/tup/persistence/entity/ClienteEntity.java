@@ -45,14 +45,6 @@ public class ClienteEntity extends BaseEntity {
         cliente.setFechaNacimiento(this.fechaNacimiento);
         cliente.setBanco(this.banco);
 
-        // Cargar cuentas si existen
-        /*if (this.cuentas != null && !this.cuentas.isEmpty()) {
-            for (Long numeroCuenta : this.cuentas) {
-                Cuenta cuenta = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 0.3);
-                cuenta.setNumeroCuenta(numeroCuenta); // Solo asigna el número de cuenta aquí
-                cliente.addCuenta(cuenta);
-            }
-        }*/
 
         return cliente;
     }

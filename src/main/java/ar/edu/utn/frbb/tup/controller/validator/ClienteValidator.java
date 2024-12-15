@@ -2,18 +2,23 @@ package ar.edu.utn.frbb.tup.controller.validator;
 
 import ar.edu.utn.frbb.tup.controller.dto.ClienteDto;
 import ar.edu.utn.frbb.tup.model.TipoPersona;
+import ar.edu.utn.frbb.tup.model.exception.InvalidDateFormatException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 
 @Component
 public class ClienteValidator {
 
     public void validate(ClienteDto clienteDto) {
+        validateFechaFormato(clienteDto.getFechaNacimiento());
         validateTipoPersona(clienteDto.getTipoPersona());
-        validateFechaNacimiento(clienteDto.getFechaNacimiento());
+        LocalDate fechaNacimiento = LocalDate.parse(clienteDto.getFechaNacimiento(), DateTimeFormatter.ISO_LOCAL_DATE);
+        validateFechaNacimiento(fechaNacimiento);
         validateDni(clienteDto.getDni());
         validateNombre(clienteDto.getNombre());
         validateApellido(clienteDto.getApellido());
@@ -28,14 +33,32 @@ public class ClienteValidator {
         }
     }
 
+
+    private void validateFechaFormato(String fechaNacimientoStr) {
+        try {
+            // Validamos que la fecha esté en el formato correcto (yyyy-MM-dd)
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate fechaNacimiento = LocalDate.parse(fechaNacimientoStr, formatter);
+
+            // Si la fecha es válida, la validamos en el siguiente paso
+            validateFechaNacimiento(fechaNacimiento);
+
+        } catch (DateTimeParseException e) {
+            // Si el formato no es válido, lanzamos una excepción personalizada
+            throw new InvalidDateFormatException("La fecha de nacimiento debe usar el formato año-mes-día (YYYY-MM-DD).");
+        }
+    }
+
     private void validateFechaNacimiento(LocalDate fechaNacimiento) {
+        // Validación de fecha no futura
         if (fechaNacimiento.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("La fecha de nacimiento no puede ser futura");
+            throw new IllegalArgumentException("La fecha de nacimiento no puede ser futura.");
         }
 
+        // Validación de edad
         int edad = Period.between(fechaNacimiento, LocalDate.now()).getYears();
         if (edad < 18) {
-            throw new IllegalArgumentException("El cliente debe ser mayor de 18 años");
+            throw new IllegalArgumentException("El cliente debe ser mayor de 18 años.");
         }
     }
 

@@ -6,6 +6,7 @@ import ar.edu.utn.frbb.tup.model.Cuenta;
 import ar.edu.utn.frbb.tup.model.TipoCuenta;
 import ar.edu.utn.frbb.tup.model.TipoMoneda;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import ar.edu.utn.frbb.tup.model.exception.ClienteAlreadyExistsException;
 import ar.edu.utn.frbb.tup.persistence.ClienteDao;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,12 @@ public class ClienteService {
         return cliente;  // Devuelve el cliente con la cuenta asociada
     }
 
-    public Cliente darDeAltaCliente(ClienteDto clienteDto) {
+    public Cliente darDeAltaCliente(ClienteDto clienteDto) throws ClienteAlreadyExistsException {
+        Cliente clienteExistente = clienteDao.find(clienteDto.getDni(), false);
+
+        if (clienteExistente != null) {
+            throw new ClienteAlreadyExistsException("Ya existe un cliente con el DNI: " + clienteDto.getDni());
+        }
         Cliente cliente = new Cliente(clienteDto);
         clienteDao.save(cliente);
         return cliente;
