@@ -16,10 +16,16 @@ public class TransferenciaController {
 
     @PostMapping
     public ResponseEntity<TransferenciaResponseDto> realizarTransferencia(@RequestBody TransferenciaDto transferenciaDto) {
-        transferenciaService.transferir(transferenciaDto);
-        return ResponseEntity.ok(new TransferenciaResponseDto("EXITOSA", "Transferencia exitosa"));
+        try {
+            transferenciaService.transferir(transferenciaDto);
+            return ResponseEntity.ok(new TransferenciaResponseDto("EXITOSA", "Transferencia realizada con éxito"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new TransferenciaResponseDto("FALLIDA", e.getMessage()));
+        }
     }
 }
+
+
 
 
 

@@ -3,7 +3,6 @@ package ar.edu.utn.frbb.tup.service;
 import ar.edu.utn.frbb.tup.controller.dto.TransferenciaDto;
 import ar.edu.utn.frbb.tup.controller.validator.TransferenciaValidator;
 import ar.edu.utn.frbb.tup.model.Cuenta;
-import ar.edu.utn.frbb.tup.model.Movimiento;
 import ar.edu.utn.frbb.tup.model.TipoMoneda;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
 import ar.edu.utn.frbb.tup.model.exception.CantidadNegativaException;
@@ -11,7 +10,6 @@ import ar.edu.utn.frbb.tup.model.exception.NoAlcanzaException;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
 
 @Service
 public class TransferenciaService {
@@ -20,7 +18,7 @@ public class TransferenciaService {
     private CuentaDao cuentaDao;
 
     @Autowired
-    private MovimientoService movimientoService;
+    private CuentaService cuentaService;
 
     @Autowired
     private BanelcoService banelcoService;
@@ -28,7 +26,6 @@ public class TransferenciaService {
     @Autowired
     private TransferenciaValidator transferenciaValidator;
 
-    // Método principal de transferencia
     public void transferir(TransferenciaDto transferenciaDto) {
         Cuenta cuentaOrigen = cuentaDao.find(transferenciaDto.getCuentaOrigen());
         Cuenta cuentaDestino = cuentaDao.find(transferenciaDto.getCuentaDestino());
@@ -37,65 +34,53 @@ public class TransferenciaService {
             throw new BusinessLogicException("La cuenta origen no existe.");
         }
 
-        // Validar cuentas y el DTO de transferencia
-        transferenciaValidator.validarCuentas(cuentaOrigen, cuentaDestino, transferenciaDto);
-
-        // Calcular la comisión de la transferencia
-        double comision = calcularComision(
-                TipoMoneda.valueOf(transferenciaDto.getMoneda().toUpperCase()), // Tipo de moneda
-                transferenciaDto.getMonto()                                    // Monto de la transferencia
-        );
-
-        double montoConComision = transferenciaDto.getMonto() + comision;
-
-        // Realizar el débito en la cuenta origen
-        try {
-            cuentaOrigen.debitarDeCuenta(montoConComision);
-        } catch (CantidadNegativaException e) {
-            throw new BusinessLogicException(e.getMessage()); // Mensaje tal cual para monto negativo
-        } catch (NoAlcanzaException e) {
-            throw new BusinessLogicException("La cuenta origen no tiene fondos suficientes: " + e.getMessage());
+        if (cuentaDestino == null || cuentaDestino.getNumeroCuenta() <= 0) {
+            throw new BusinessLogicException("La cuenta destino no existe.");
         }
 
-        cuentaDao.save(cuentaOrigen);
+        // Validar cuentas y transferencia
+        transferenciaValidator.validarCuentas(cuentaOrigen, cuentaDestino, transferenciaDto);
 
-        // Registrar movimiento de débito en la cuenta origen
-        Movimiento movimientoDebito = new Movimiento(
-                cuentaOrigen.getNumeroCuenta(), // número de cuenta origen
-                "DÉBITO",                       // tipo de movimiento
-                montoConComision,               // monto con la comisión
-                "Transferencia realizada a la cuenta " + transferenciaDto.getCuentaDestino(), // descripción
-                LocalDateTime.now()              // fecha actual
-        );
-        movimientoService.registrarMovimiento(cuentaOrigen.getNumeroCuenta(), movimientoDebito);
-
-        if (cuentaDestino != null) {
-            // Transferencia local: registrar movimientos en origen y destino
-            cuentaDestino.acreditarEnCuenta(transferenciaDto.getMonto());
-            cuentaDao.save(cuentaDestino);
-
-            Movimiento movimientoCredito = new Movimiento(
-                    cuentaDestino.getNumeroCuenta(),  // número de cuenta destino
-                    "CRÉDITO",                        // tipo de movimiento
-                    transferenciaDto.getMonto(),      // monto transferido
-                    "Transferencia recibida de la cuenta " + transferenciaDto.getCuentaOrigen(), // descripción
-                    LocalDateTime.now()                // fecha actual
-            );
-            movimientoService.registrarMovimiento(cuentaDestino.getNumeroCuenta(), movimientoCredito);
-        } else {
-            // Transferencia externa: no registrar un movimiento adicional de débito para la cuenta origen
-            banelcoService.realizarTransferenciaExterna(transferenciaDto);
-            System.out.println("Transferencia externa realizada...");
+        try {
+            if (!cuentaOrigen.getTitular().getBanco().equals(cuentaDestino.getTitular().getBanco())) {
+                realizarTransferenciaExterna(cuentaOrigen, transferenciaDto);
+            } else {
+                cuentaService.realizarTransferenciaInterna(cuentaOrigen, cuentaDestino, transferenciaDto);
+            }
+        } catch (NoAlcanzaException | CantidadNegativaException e) {
+            throw new BusinessLogicException("Error en la transferencia: " + e.getMessage());
         }
     }
 
-    // Método para calcular la comisión
+
+    private void realizarTransferenciaExterna(Cuenta cuentaOrigen, TransferenciaDto transferenciaDto) throws NoAlcanzaException, CantidadNegativaException {
+        // Calcular comisión
+        double comision = calcularComision(
+                TipoMoneda.valueOf(transferenciaDto.getMoneda().toUpperCase()),
+                transferenciaDto.getMonto()
+        );
+
+        // Validar fondos suficientes incluyendo la comisión
+        double montoConComision = transferenciaDto.getMonto() + comision;
+        try {
+            cuentaOrigen.debitarDeCuenta(montoConComision);
+        } catch (CantidadNegativaException | NoAlcanzaException e) {
+            throw new BusinessLogicException(e.getMessage());
+        }
+
+        // Registrar el movimiento externo a través de CuentaService
+        cuentaService.registrarMovimientoExterno(cuentaOrigen, transferenciaDto);
+
+        // Llamar al servicio Banelco
+        banelcoService.realizarTransferenciaExterna(transferenciaDto);
+    }
+
     private double calcularComision(TipoMoneda moneda, double monto) {
         if (moneda == TipoMoneda.PESOS && monto > 1_000_000) {
-            return monto * 0.02; // 2% de comisión para montos mayores a 1 millón de pesos
+            return monto * 0.02;
         } else if (moneda == TipoMoneda.DOLARES && monto > 5_000) {
-            return monto * 0.005; // 0.5% de comisión para montos mayores a 5,000 dólares
+            return monto * 0.005;
         }
-        return 0; // Si no se cumple ninguna de las condiciones anteriores, no hay comisión
+        return 0;
     }
 }
