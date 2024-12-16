@@ -72,9 +72,6 @@ public class CuentaService {
             throws NoAlcanzaException, CantidadNegativaException {
         double monto = transferenciaDto.getMonto();
 
-        // Verificar fondos
-        verificarFondosSuficientes(cuentaOrigen, monto);
-
         // Realizar débitos y créditos
         cuentaOrigen.debitarDeCuenta(monto);
         cuentaDestino.acreditarEnCuenta(monto);

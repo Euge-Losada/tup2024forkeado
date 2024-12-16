@@ -31,11 +31,20 @@ public class ClienteValidatorTest {
 
     @Test
     public void testValidateTipoPersonaError() {
+        // Configuración mínima para evitar NullPointerException
+        clienteDto.setNombre("Juan");
+        clienteDto.setApellido("Pérez");
+        clienteDto.setDni(12345678L);
+        clienteDto.setFechaNacimiento("2000-01-01");
+        clienteDto.setBanco("Banco Nación");
+
+        // Configuramos un valor inválido para TipoPersona
         clienteDto.setTipoPersona("X");
 
         Exception e = assertThrows(IllegalArgumentException.class, () -> validator.validate(clienteDto));
         assertTrue(e.getMessage().contains("El tipo de persona no es correcto"));
     }
+
 
     @Test
     public void testValidateDniError() {

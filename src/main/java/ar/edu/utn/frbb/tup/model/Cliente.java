@@ -1,9 +1,12 @@
 package ar.edu.utn.frbb.tup.model;
 
 import ar.edu.utn.frbb.tup.controller.dto.ClienteDto;
+import ar.edu.utn.frbb.tup.model.exception.InvalidDateFormatException;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,7 +22,7 @@ public class Cliente extends Persona{
         super();
     }
     public Cliente(ClienteDto clienteDto) {
-        super(clienteDto.getDni(), clienteDto.getApellido(), clienteDto.getNombre(), clienteDto.getFechaNacimiento().toString());
+        super(clienteDto.getDni(), clienteDto.getApellido(), clienteDto.getNombre(), clienteDto.getFechaNacimiento());
 
         this.fechaAlta = LocalDate.now();
         this.banco = clienteDto.getBanco();
@@ -70,6 +73,8 @@ public class Cliente extends Persona{
         }
         return false;
     }
+
+
 
     @Override
     public String toString() {

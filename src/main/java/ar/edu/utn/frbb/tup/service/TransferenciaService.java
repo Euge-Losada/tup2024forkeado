@@ -27,18 +27,22 @@ public class TransferenciaService {
     private TransferenciaValidator transferenciaValidator;
 
     public void transferir(TransferenciaDto transferenciaDto) {
-        Cuenta cuentaOrigen = cuentaDao.find(transferenciaDto.getCuentaOrigen());
-        Cuenta cuentaDestino = cuentaDao.find(transferenciaDto.getCuentaDestino());
+        if (transferenciaDto.getMonto() <= 0) {
+            throw new BusinessLogicException("Error en la transferencia: Monto negativo.");
+        }
 
+        Cuenta cuentaOrigen = cuentaDao.find(transferenciaDto.getCuentaOrigen());
         if (cuentaOrigen == null || cuentaOrigen.getNumeroCuenta() <= 0) {
             throw new BusinessLogicException("La cuenta origen no existe.");
         }
 
-        if (cuentaDestino == null || cuentaDestino.getNumeroCuenta() <= 0) {
-            throw new BusinessLogicException("La cuenta destino no existe.");
+        Cuenta cuentaDestino = cuentaDao.find(transferenciaDto.getCuentaDestino());
+        if (cuentaDestino == null) {
+            banelcoService.validarCuentaDestino(transferenciaDto.getCuentaDestino());
+            realizarTransferenciaExterna(cuentaOrigen, transferenciaDto);
+            return;
         }
 
-        // Validar cuentas y transferencia
         transferenciaValidator.validarCuentas(cuentaOrigen, cuentaDestino, transferenciaDto);
 
         try {
@@ -53,27 +57,28 @@ public class TransferenciaService {
     }
 
 
-    private void realizarTransferenciaExterna(Cuenta cuentaOrigen, TransferenciaDto transferenciaDto) throws NoAlcanzaException, CantidadNegativaException {
-        // Calcular comisión
+
+
+    private void realizarTransferenciaExterna(Cuenta cuentaOrigen, TransferenciaDto transferenciaDto) {
         double comision = calcularComision(
                 TipoMoneda.valueOf(transferenciaDto.getMoneda().toUpperCase()),
                 transferenciaDto.getMonto()
         );
 
-        // Validar fondos suficientes incluyendo la comisión
         double montoConComision = transferenciaDto.getMonto() + comision;
+
         try {
             cuentaOrigen.debitarDeCuenta(montoConComision);
+            cuentaService.registrarMovimientoExterno(cuentaOrigen, transferenciaDto);
+            banelcoService.realizarTransferenciaExterna(transferenciaDto);
         } catch (CantidadNegativaException | NoAlcanzaException e) {
-            throw new BusinessLogicException(e.getMessage());
+            throw new BusinessLogicException("Error al realizar la transferencia externa: " + e.getMessage());
         }
-
-        // Registrar el movimiento externo a través de CuentaService
-        cuentaService.registrarMovimientoExterno(cuentaOrigen, transferenciaDto);
-
-        // Llamar al servicio Banelco
-        banelcoService.realizarTransferenciaExterna(transferenciaDto);
     }
+
+
+
+
 
     private double calcularComision(TipoMoneda moneda, double monto) {
         if (moneda == TipoMoneda.PESOS && monto > 1_000_000) {

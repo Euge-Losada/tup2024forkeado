@@ -1,21 +1,30 @@
 package ar.edu.utn.frbb.tup.service;
 
 import ar.edu.utn.frbb.tup.controller.dto.CuentaDto;
+import ar.edu.utn.frbb.tup.controller.dto.TransferenciaDto;
 import ar.edu.utn.frbb.tup.model.Cliente;
 import ar.edu.utn.frbb.tup.model.Cuenta;
 import ar.edu.utn.frbb.tup.model.TipoCuenta;
 import ar.edu.utn.frbb.tup.model.TipoMoneda;
+import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import ar.edu.utn.frbb.tup.model.exception.CantidadNegativaException;
 import ar.edu.utn.frbb.tup.model.exception.CuentaAlreadyExistsException;
+import ar.edu.utn.frbb.tup.model.exception.NoAlcanzaException;
+import ar.edu.utn.frbb.tup.persistence.ClienteDao;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.HashSet;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class CuentaServiceTest {
 
     @InjectMocks
@@ -25,58 +34,111 @@ class CuentaServiceTest {
     private CuentaDao cuentaDao;
 
     @Mock
+    private ClienteDao clienteDao;
+
+    @Mock
+    private MovimientoService movimientoService;
+
+    @Mock
     private ClienteService clienteService;
+
+    private CuentaDto cuentaDto;
+    private Cliente cliente;
+    private Cuenta cuenta;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        cuentaDto = new CuentaDto();
+        cuentaDto.setDniTitular(12345678L);
+        cuentaDto.setTipoCuenta("CAJA_AHORRO");
+        cuentaDto.setMoneda("PESOS");
+        cuentaDto.setBalanceInicial(500.0);
+
+        cliente = new Cliente();
+        cliente.setDni(12345678L);
+        cliente.addCuenta(cuenta);
+
+        cuenta = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 500.0);
+
     }
 
     @Test
-    void testDarDeAltaCuenta() throws Exception, CuentaAlreadyExistsException {
-        // Preparar datos
-        CuentaDto cuentaDto = new CuentaDto();
-        cuentaDto.setNumeroCuenta(12345678L);
-        cuentaDto.setDniTitular(87654321L);
-        cuentaDto.setTipoCuenta("CAJA_AHORRO");
-        cuentaDto.setMoneda("PESOS");
-        cuentaDto.setBalanceInicial(1000.0);
+    void testDarDeAltaCuentaExitosa() throws Exception, CuentaAlreadyExistsException {
+        // Simula cliente encontrado sin cuentas
+        when(clienteService.buscarClientePorDni(12345678L)).thenReturn(cliente);
 
-        Cliente clienteMock = mock(Cliente.class);
+        // Simula el guardado de la cuenta
+        doNothing().when(cuentaDao).save(any(Cuenta.class));
+        doNothing().when(clienteDao).save(any(Cliente.class));
 
-        // Simular clienteService y cuentaDao
-        when(clienteService.buscarClientePorDni(87654321L)).thenReturn(clienteMock);
-        when(cuentaDao.find(12345678L)).thenReturn(null);
+        // Ejecuta el método
+        cuentaService.darDeAltaCuenta(cuentaDto);
 
-        // Acción
-        Cuenta cuenta = cuentaService.darDeAltaCuenta(cuentaDto);
-
-        // Verificar resultados
-        assertNotNull(cuenta);
-        assertEquals(12345678L, cuenta.getNumeroCuenta());
-        assertEquals(TipoCuenta.CAJA_AHORRO, cuenta.getTipoCuenta());
-        assertEquals(TipoMoneda.PESOS, cuenta.getMoneda());
-        assertEquals(1000.0, cuenta.getBalance());
-
-        // Verificar interacción con clienteService y cuentaDao
-        verify(clienteService, times(1)).buscarClientePorDni(87654321L);
+        // Verificaciones
         verify(cuentaDao, times(1)).save(any(Cuenta.class));
+        verify(clienteDao, times(1)).save(any(Cliente.class));
     }
 
     @Test
-    void testDarDeAltaCuentaConCuentaExistente() {
-        // Preparar datos
-        CuentaDto cuentaDto = new CuentaDto();
-        cuentaDto.setNumeroCuenta(12345678L);
-        cuentaDto.setDniTitular(87654321L);
-        cuentaDto.setTipoCuenta("CAJA_AHORRO");
-        cuentaDto.setMoneda("PESOS");
-        cuentaDto.setBalanceInicial(1000.0);
+    void testDarDeAltaCuentaDuplicada() {
+        // Simula que el cliente ya tiene una cuenta con mismo tipo y moneda
+        cliente.getCuentas().add(cuenta);
+        when(clienteService.buscarClientePorDni(12345678L)).thenReturn(cliente);
 
-        when(cuentaDao.find(12345678L)).thenReturn(new Cuenta());
+        // Verifica que se lanza la excepción esperada
+        assertThatThrownBy(() -> cuentaService.darDeAltaCuenta(cuentaDto))
+                .isInstanceOf(CuentaAlreadyExistsException.class)
+                .hasMessageContaining("El cliente ya tiene una cuenta del tipo");
 
-        // Verificar que lanza excepción
-        Exception exception = assertThrows(Exception.class, () -> cuentaService.darDeAltaCuenta(cuentaDto));
-        assertEquals("La cuenta con número 12345678 ya existe.", exception.getMessage());
+        verify(cuentaDao, never()).save(any());
+    }
+
+    @Test
+    void testRealizarTransferenciaInternaExitosa() throws Exception, NoAlcanzaException, CantidadNegativaException {
+        Cuenta cuentaDestino = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 100.0);
+        TransferenciaDto transferenciaDto = new TransferenciaDto();
+        transferenciaDto.setMonto(200.0);
+
+        // Simula transferencias
+        doNothing().when(movimientoService).registrarMovimiento(anyLong(), any());
+        doNothing().when(cuentaDao).save(any(Cuenta.class));
+
+        // Ejecuta el método
+        cuentaService.realizarTransferenciaInterna(cuenta, cuentaDestino, transferenciaDto);
+
+        // Verificaciones
+        verify(cuentaDao, times(2)).save(any(Cuenta.class));
+        verify(movimientoService, times(2)).registrarMovimiento(anyLong(), any());
+    }
+
+    @Test
+    void testRealizarTransferenciaInternaFondosInsuficientes() {
+        Cuenta cuentaDestino = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 100.0);
+        TransferenciaDto transferenciaDto = new TransferenciaDto();
+        transferenciaDto.setMonto(1000.0);
+
+        assertThatThrownBy(() -> cuentaService.realizarTransferenciaInterna(cuenta, cuentaDestino, transferenciaDto))
+                .isInstanceOf(BusinessLogicException.class)
+                .hasMessageContaining("Fondos insuficientes");
+
+        verify(cuentaDao, never()).save(any());
+    }
+
+    @Test
+    void testRegistrarMovimientoExternoExitoso() throws Exception, NoAlcanzaException, CantidadNegativaException {
+        TransferenciaDto transferenciaDto = new TransferenciaDto();
+        transferenciaDto.setMonto(200.0);
+        transferenciaDto.setCuentaDestino(222L);
+
+        // Simula débito exitoso
+        doNothing().when(movimientoService).registrarMovimiento(anyLong(), any());
+        doNothing().when(cuentaDao).save(any(Cuenta.class));
+
+        // Ejecuta el método
+        cuentaService.registrarMovimientoExterno(cuenta, transferenciaDto);
+
+        // Verificaciones
+        verify(movimientoService, times(1)).registrarMovimiento(anyLong(), any());
+        verify(cuentaDao, times(1)).save(any(Cuenta.class));
     }
 }

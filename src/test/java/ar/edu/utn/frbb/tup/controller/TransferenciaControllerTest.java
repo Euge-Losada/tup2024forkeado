@@ -2,20 +2,18 @@ package ar.edu.utn.frbb.tup.controller;
 
 import ar.edu.utn.frbb.tup.controller.dto.TransferenciaDto;
 import ar.edu.utn.frbb.tup.controller.dto.TransferenciaResponseDto;
-import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
 import ar.edu.utn.frbb.tup.service.TransferenciaService;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
+import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransferenciaControllerTest {
 
     @InjectMocks
@@ -24,47 +22,31 @@ class TransferenciaControllerTest {
     @Mock
     private TransferenciaService transferenciaService;
 
-    private TransferenciaDto transferenciaDto;
+    @Test
+    void testTransferenciaExitosa() {
+        TransferenciaDto transferenciaDto = new TransferenciaDto();
+        transferenciaDto.setCuentaOrigen(1001L);
+        transferenciaDto.setCuentaDestino(1002L);
+        transferenciaDto.setMonto(500.0);
 
-    @BeforeAll
-    void setup() {
-        transferenciaDto = new TransferenciaDto();
-        transferenciaDto.setCuentaOrigen(12345678L);
-        transferenciaDto.setCuentaDestino(87654321L);
-        transferenciaDto.setMonto(1000.0);
-        transferenciaDto.setMoneda("PESOS");
+        TransferenciaResponseDto respuesta = transferenciaController.realizarTransferencia(transferenciaDto).getBody();
+
+        assertEquals("EXITOSA", respuesta.getEstado());
+        assertEquals("Transferencia realizada con éxito", respuesta.getMensaje());
+
+        verify(transferenciaService, times(1)).transferir(transferenciaDto);
     }
 
     @Test
-    @DisplayName("Test: Realizar transferencia exitosa")
-    void testRealizarTransferencia_Exitosa() {
-        // Act
-        ResponseEntity<TransferenciaResponseDto> responseEntity = transferenciaController.realizarTransferencia(transferenciaDto);
+    void testTransferenciaFallida() {
+        TransferenciaDto transferenciaDto = new TransferenciaDto();
 
-        // Assert
-        assertNotNull(responseEntity, "La respuesta no debería ser nula");
-        assertNotNull(responseEntity.getBody(), "El cuerpo de la respuesta no debería ser nulo");
-        assertEquals("EXITOSA", responseEntity.getBody().getEstado());
-        assertEquals("Transferencia exitosa", responseEntity.getBody().getMensaje());
-    }
-
-    @Test
-    @DisplayName("Test: Realizar transferencia fallida por fondos insuficientes")
-    void testRealizarTransferencia_Fallida() {
-        // Arrange
-        doThrow(new BusinessLogicException("Fondos insuficientes"))
+        doThrow(new BusinessLogicException("Error en la transferencia"))
                 .when(transferenciaService).transferir(any(TransferenciaDto.class));
 
-        // Act & Assert
-        BusinessLogicException exception = assertThrows(BusinessLogicException.class,
-                () -> transferenciaController.realizarTransferencia(transferenciaDto));
+        TransferenciaResponseDto respuesta = transferenciaController.realizarTransferencia(transferenciaDto).getBody();
 
-        assertNotNull(exception, "La excepción no debería ser nula");
-        assertEquals("Fondos insuficientes", exception.getMessage());
-    }
-
-    @AfterAll
-    void tearDown() {
-        transferenciaDto = null;
+        assertEquals("FALLIDA", respuesta.getEstado());
+        assertEquals("Error en la transferencia: Error en la transferencia", respuesta.getMensaje());
     }
 }

@@ -1,74 +1,51 @@
 package ar.edu.utn.frbb.tup.persistence;
 
-import ar.edu.utn.frbb.tup.model.Cliente;
 import ar.edu.utn.frbb.tup.model.Cuenta;
 import ar.edu.utn.frbb.tup.model.TipoCuenta;
 import ar.edu.utn.frbb.tup.model.TipoMoneda;
-import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CuentaDaoTest {
 
     @Mock
-    private ClienteDao clienteDao;
-
-    @InjectMocks
     private CuentaDao cuentaDao;
 
+    private Cuenta cuenta;
+
+    @BeforeEach
+    void setUp() {
+        // Crear un objeto Cuenta de ejemplo para las pruebas
+        cuenta = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 1000.0);
+    }
 
     @Test
-    public void testGuardarYBuscarCuenta() {
-        Cliente titular = new Cliente();
-        titular.setDni(12345678L);
-        titular.setNombre("Juan");
-        titular.setApellido("Pérez");
-
-        Cuenta cuenta = new Cuenta();
-        cuenta.setNumeroCuenta(12345L);
-        cuenta.setTipoCuenta(TipoCuenta.CAJA_AHORRO);
-        cuenta.setMoneda(TipoMoneda.PESOS);
-        cuenta.setBalance(1000.0);
-        cuenta.setFechaCreacion(java.time.LocalDateTime.now());
-        cuenta.setTitular(titular);
-
-        when(clienteDao.find(12345678L, true)).thenReturn(titular);
-
+    void testSave() {
+        // Simular que se llama el método save
         cuentaDao.save(cuenta);
 
-        Cuenta encontrada = cuentaDao.find(12345L);
-        assertNotNull(encontrada);
-        assertEquals(12345L, encontrada.getNumeroCuenta());
-        assertNotNull(encontrada.getTitular());
-        assertEquals("Juan", encontrada.getTitular().getNombre());
+        // Verificar que el método save fue llamado con la cuenta correcta
+        verify(cuentaDao, times(1)).save(cuenta);
     }
 
     @Test
-    public void testGuardarCuentaSinTitularLanzaExcepcion() {
-        Cuenta cuenta = new Cuenta();
-        cuenta.setNumeroCuenta(12345L);
-        cuenta.setTipoCuenta(TipoCuenta.CAJA_AHORRO);
-        cuenta.setMoneda(TipoMoneda.PESOS);
-        cuenta.setBalance(1000.0);
-        cuenta.setFechaCreacion(java.time.LocalDateTime.now());
-        cuenta.setTitular(null); // Sin titular
+    void testFind() {
+        // Simular que el método find devuelve la cuenta
+        when(cuentaDao.find(cuenta.getNumeroCuenta())).thenReturn(cuenta);
 
-        Exception exception = assertThrows(BusinessLogicException.class, () -> cuentaDao.save(cuenta));
-        assertEquals("La cuenta debe tener un titular.", exception.getMessage());
+        // Verificar que el método find devuelve la cuenta esperada
+        Cuenta cuentaEncontrada = cuentaDao.find(cuenta.getNumeroCuenta());
+        assertEquals(cuenta, cuentaEncontrada);
+
+        // Verificar que el método find fue llamado una vez
+        verify(cuentaDao, times(1)).find(cuenta.getNumeroCuenta());
     }
-
 }

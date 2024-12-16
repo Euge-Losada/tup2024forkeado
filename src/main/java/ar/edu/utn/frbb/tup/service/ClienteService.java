@@ -1,6 +1,7 @@
 package ar.edu.utn.frbb.tup.service;
 
 import ar.edu.utn.frbb.tup.controller.dto.ClienteDto;
+import ar.edu.utn.frbb.tup.controller.validator.ClienteValidator;
 import ar.edu.utn.frbb.tup.model.Cliente;
 import ar.edu.utn.frbb.tup.model.Cuenta;
 import ar.edu.utn.frbb.tup.model.TipoCuenta;
@@ -16,17 +17,22 @@ import org.springframework.stereotype.Service;
 public class ClienteService {
 
     private final ClienteDao clienteDao;
+    private final ClienteValidator clienteValidator;
 
     @Autowired
-    public ClienteService(ClienteDao clienteDao) {
+    public ClienteService(ClienteDao clienteDao, ClienteValidator clienteValidator) {
         this.clienteDao = clienteDao;
+        this.clienteValidator = clienteValidator;
     }
+   /* @Autowired
+    private ClienteValidator clienteValidator;*/
 
     @Autowired
     private CuentaDao cuentaDao;
 
     // Método para crear un cliente con una cuenta asociada
     public Cliente crearClienteConCuenta(ClienteDto clienteDto) {
+        clienteValidator.validate(clienteDto);
         // Crear el cliente a partir del DTO
         Cliente cliente = new Cliente(clienteDto);
 
@@ -48,11 +54,14 @@ public class ClienteService {
     }
 
     public Cliente darDeAltaCliente(ClienteDto clienteDto) throws ClienteAlreadyExistsException {
+        clienteValidator.validate(clienteDto);
+
         Cliente clienteExistente = clienteDao.find(clienteDto.getDni(), false);
 
         if (clienteExistente != null) {
             throw new ClienteAlreadyExistsException("Ya existe un cliente con el DNI: " + clienteDto.getDni());
         }
+
         Cliente cliente = new Cliente(clienteDto);
         clienteDao.save(cliente);
         return cliente;

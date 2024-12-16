@@ -140,4 +140,16 @@ public class Cuenta {
         return numeroCuenta;
     }
 
+    @Override
+    public String toString() {
+        return "Cuenta{" +
+                "numeroCuenta=" + numeroCuenta +
+                ", tipoCuenta=" + tipoCuenta +
+                ", moneda=" + moneda +
+                ", balance=" + balance +
+                ", fechaCreacion=" + fechaCreacion +
+                '}';
+    }
+
+
 }

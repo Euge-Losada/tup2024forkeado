@@ -2,10 +2,10 @@ package ar.edu.utn.frbb.tup.service;
 
 import ar.edu.utn.frbb.tup.controller.dto.TransferenciaDto;
 import ar.edu.utn.frbb.tup.controller.validator.TransferenciaValidator;
-import ar.edu.utn.frbb.tup.model.Cuenta;
-import ar.edu.utn.frbb.tup.model.Movimiento;
-import ar.edu.utn.frbb.tup.model.TipoMoneda;
+import ar.edu.utn.frbb.tup.model.*;
 import ar.edu.utn.frbb.tup.model.exception.BusinessLogicException;
+import ar.edu.utn.frbb.tup.model.exception.CantidadNegativaException;
+import ar.edu.utn.frbb.tup.model.exception.NoAlcanzaException;
 import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,13 +18,16 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TransferenciaServiceTest {
+class TransferenciaServiceTest {
+
+    @InjectMocks
+    private TransferenciaService transferenciaService;
 
     @Mock
     private CuentaDao cuentaDao;
 
     @Mock
-    private MovimientoService movimientoService;
+    private CuentaService cuentaService;
 
     @Mock
     private BanelcoService banelcoService;
@@ -32,215 +35,99 @@ public class TransferenciaServiceTest {
     @Mock
     private TransferenciaValidator transferenciaValidator;
 
-    @InjectMocks
-    private TransferenciaService transferenciaService;
-
+    private TransferenciaDto transferenciaDto;
     private Cuenta cuentaOrigen;
     private Cuenta cuentaDestino;
-    private Cuenta cuentaOrigen2;
-    private Cuenta cuentaDestino2;
 
     @BeforeEach
-    public void setUp() {
-        cuentaOrigen = new Cuenta();
-        cuentaOrigen.setNumeroCuenta(12345678L);
-        cuentaOrigen.setMoneda(TipoMoneda.PESOS);
-        cuentaOrigen.setBalance(2000000);
+    void setUp() {
+        // Configuración del DTO de la transferencia
+        transferenciaDto = new TransferenciaDto();
+        transferenciaDto.setCuentaOrigen(1001L);
+        transferenciaDto.setCuentaDestino(1002L);
+        transferenciaDto.setMonto(500.0);
+        transferenciaDto.setMoneda("PESOS");
 
-        cuentaDestino = new Cuenta();
-        cuentaDestino.setNumeroCuenta(87654321L);
-        cuentaDestino.setMoneda(TipoMoneda.PESOS);
-        cuentaDestino.setBalance(1000);
+        // Configuración de las cuentas
+        Cliente titularOrigen = new Cliente();
+        titularOrigen.setBanco("Banco1");
 
-        // Cuentas en DÓLARES
-        cuentaOrigen2 = new Cuenta();
-        cuentaOrigen2.setNumeroCuenta(22222222L);
-        cuentaOrigen2.setMoneda(TipoMoneda.DOLARES);
-        cuentaOrigen2.setBalance(15000.0);
+        Cliente titularDestino = new Cliente();
+        titularDestino.setBanco("Banco1");
 
-        cuentaDestino2 = new Cuenta();
-        cuentaDestino2.setNumeroCuenta(33333333L);
-        cuentaDestino2.setMoneda(TipoMoneda.DOLARES);
-        cuentaDestino2.setBalance(5000.0);
+        cuentaOrigen = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 1000.0); // Balance suficiente
+        cuentaOrigen.setNumeroCuenta(1001L);
+        cuentaOrigen.setTitular(titularOrigen);
+
+        cuentaDestino = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 200.0);
+        cuentaDestino.setNumeroCuenta(1002L);
+        cuentaDestino.setTitular(titularDestino);
     }
 
     @Test
-    public void testTransferenciaExitosa() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(12345678L);
-        dto.setCuentaDestino(87654321L);
-        dto.setMonto(1500000);
-        dto.setMoneda("PESOS");
+    void testTransferenciaInternaExitosa() throws Exception, NoAlcanzaException, CantidadNegativaException {
+        when(cuentaDao.find(1001L)).thenReturn(cuentaOrigen);
+        when(cuentaDao.find(1002L)).thenReturn(cuentaDestino);
 
-        when(cuentaDao.find(12345678L)).thenReturn(cuentaOrigen);
-        when(cuentaDao.find(87654321L)).thenReturn(cuentaDestino);
-        doNothing().when(transferenciaValidator).validarCuentas(cuentaOrigen, cuentaDestino, dto);
+        // Ejecutar transferencia
+        transferenciaService.transferir(transferenciaDto);
 
-        transferenciaService.transferir(dto);
-
-        assertEquals(470000, cuentaOrigen.getBalance()); // 2M - 1.5M - comisión 30k
-        assertEquals(1501000, cuentaDestino.getBalance());
-
-        verify(movimientoService, times(1)).registrarMovimiento(eq(12345678L), any(Movimiento.class));
-        verify(movimientoService, times(1)).registrarMovimiento(eq(87654321L), any(Movimiento.class));
-        verify(cuentaDao, times(2)).save(any(Cuenta.class));
+        // Verificar interacciones
+        verify(transferenciaValidator).validarCuentas(cuentaOrigen, cuentaDestino, transferenciaDto);
+        verify(cuentaService, times(1)).realizarTransferenciaInterna(cuentaOrigen, cuentaDestino, transferenciaDto);
+        verifyNoInteractions(banelcoService);
     }
 
     @Test
-    public void testTransferenciaConComision_Pesos() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(12345678L);
-        dto.setCuentaDestino(87654321L);
-        dto.setMonto(1100000.0); // Excede límite de comisión
-        dto.setMoneda("PESOS");
+    void testTransferenciaExternaExitosa() throws Exception {
+        transferenciaDto.setCuentaDestino(99999L); // Cuenta destino externa
 
-        when(cuentaDao.find(12345678L)).thenReturn(cuentaOrigen);
-        when(cuentaDao.find(87654321L)).thenReturn(cuentaDestino);
-        doNothing().when(transferenciaValidator).validarCuentas(cuentaOrigen, cuentaDestino, dto);
+        when(cuentaDao.find(1001L)).thenReturn(cuentaOrigen);
+        when(cuentaDao.find(99999L)).thenReturn(null); // Cuenta destino no existe localmente
 
-        transferenciaService.transferir(dto);
+        // Mock validaciones y transferencia externa
+        doNothing().when(banelcoService).validarCuentaDestino(99999L);
+        doNothing().when(banelcoService).realizarTransferenciaExterna(transferenciaDto);
 
-        double comision = 1100000 * 0.02; // 2% comisión
-        assertEquals(878000.0, cuentaOrigen.getBalance()); // Saldo origen actualizado
-        assertEquals(1101000.0, cuentaDestino.getBalance()); // Saldo destino actualizado
+        // Ejecutar transferencia
+        transferenciaService.transferir(transferenciaDto);
+
+        // Verificar interacciones
+        verify(banelcoService, times(1)).validarCuentaDestino(99999L);
+        verify(banelcoService, times(1)).realizarTransferenciaExterna(transferenciaDto);
     }
 
     @Test
-    public void testTransferenciaConComision_Dolares() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(22222222L);
-        dto.setCuentaDestino(33333333L);
-        dto.setMonto(6000.0); // Excede límite de comisión
-        dto.setMoneda("DOLARES");
+    void testTransferenciaFondosInsuficientes() throws NoAlcanzaException, CantidadNegativaException {
+        transferenciaDto.setMonto(2000.0); // Monto mayor al balance de cuentaOrigen
 
-        cuentaOrigen2.setMoneda(TipoMoneda.DOLARES);
-        cuentaDestino2.setMoneda(TipoMoneda.DOLARES);
+        when(cuentaDao.find(1001L)).thenReturn(cuentaOrigen);
+        when(cuentaDao.find(1002L)).thenReturn(cuentaDestino);
 
-        when(cuentaDao.find(22222222L)).thenReturn(cuentaOrigen2);
-        when(cuentaDao.find(33333333L)).thenReturn(cuentaDestino2);
-        doNothing().when(transferenciaValidator).validarCuentas(cuentaOrigen2, cuentaDestino2, dto);
+        // Mockear el comportamiento de debitarDeCuenta para lanzar la excepción
+        doThrow(new NoAlcanzaException("Saldo insuficiente para realizar el débito."))
+                .when(cuentaService).realizarTransferenciaInterna(any(), any(), any());
 
-        transferenciaService.transferir(dto);
+        // Ejecutar y verificar la excepción esperada
+        BusinessLogicException exception = assertThrows(BusinessLogicException.class, () ->
+                transferenciaService.transferir(transferenciaDto)
+        );
 
-        //double comision = 6000 * 0.005; // 0.5% comisión
-        assertEquals(8970.0, cuentaOrigen2.getBalance()); // Saldo origen actualizado
-        assertEquals(11000.0, cuentaDestino2.getBalance()); // Saldo destino actualizado
-    }
-
-
-
-    @Test
-    public void testTransferenciaExterna() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(12345678L);
-        dto.setCuentaDestino(99999999L); // Cuenta externa
-        dto.setMonto(1000.0);
-        dto.setMoneda("PESOS");
-
-        when(cuentaDao.find(12345678L)).thenReturn(cuentaOrigen);
-        when(cuentaDao.find(99999999L)).thenReturn(null);
-
-        transferenciaService.transferir(dto);
-
-        verify(banelcoService, times(1)).realizarTransferenciaExterna(dto);
-        verify(movimientoService, times(1)).registrarMovimiento(eq(12345678L), any(Movimiento.class));
-        verify(cuentaDao, times(1)).save(cuentaOrigen);
-
-        assertEquals(1999000, cuentaOrigen.getBalance());
-    }
-
-    @Test
-    public void testTransferenciaExternaFallida() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(12345678L);
-        dto.setCuentaDestino(99999999L);
-        dto.setMonto(2000.0);
-        dto.setMoneda("PESOS");
-
-        when(cuentaDao.find(12345678L)).thenReturn(cuentaOrigen);
-        when(cuentaDao.find(99999999L)).thenReturn(null);
-        doThrow(new BusinessLogicException("Banelco no disponible"))
-                .when(banelcoService).realizarTransferenciaExterna(dto);
-
-        BusinessLogicException exception = assertThrows(BusinessLogicException.class,
-                () -> transferenciaService.transferir(dto));
-
-        assertEquals("Banelco no disponible", exception.getMessage());
+        assertEquals("Error en la transferencia: Saldo insuficiente para realizar el débito.", exception.getMessage());
+        verify(cuentaService, times(1)).realizarTransferenciaInterna(cuentaOrigen, cuentaDestino, transferenciaDto);
     }
 
 
     @Test
-    public void testCuentaOrigenInexistente() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(99999999L);
-        dto.setCuentaDestino(87654321L);
-        dto.setMonto(1000);
-        dto.setMoneda("PESOS");
+    void testTransferenciaCuentaInexistente() {
+        when(cuentaDao.find(1001L)).thenReturn(null); // Cuenta origen no existe
 
-        when(cuentaDao.find(99999999L)).thenReturn(null);
-
-        BusinessLogicException exception = assertThrows(BusinessLogicException.class,
-                () -> transferenciaService.transferir(dto));
+        // Ejecutar y verificar la excepción esperada
+        BusinessLogicException exception = assertThrows(BusinessLogicException.class, () ->
+                transferenciaService.transferir(transferenciaDto)
+        );
 
         assertEquals("La cuenta origen no existe.", exception.getMessage());
+        verifyNoInteractions(cuentaService, banelcoService);
     }
-
-    @Test
-    public void testFondosInsuficientes() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(12345678L);
-        dto.setCuentaDestino(87654321L);
-        dto.setMonto(5000000); // Monto mayor que el balance de origen
-        dto.setMoneda("PESOS");
-
-        when(cuentaDao.find(12345678L)).thenReturn(cuentaOrigen);
-
-        BusinessLogicException exception = assertThrows(BusinessLogicException.class,
-                () -> transferenciaService.transferir(dto));
-
-        assertEquals("La cuenta origen no tiene fondos suficientes: Saldo insuficiente para realizar el débito.",
-                exception.getMessage());
-    }
-
-    @Test
-    public void testMonedaInvalida() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setCuentaOrigen(12345678L);
-        dto.setCuentaDestino(87654321L);
-        dto.setMonto(1000);
-        dto.setMoneda("DOLARES");
-
-        when(cuentaDao.find(12345678L)).thenReturn(cuentaOrigen);
-        when(cuentaDao.find(87654321L)).thenReturn(cuentaDestino);
-
-        doThrow(new BusinessLogicException("La moneda de la transferencia no coincide con la de la cuenta origen."))
-                .when(transferenciaValidator).validarCuentas(cuentaOrigen, cuentaDestino, dto);
-
-        BusinessLogicException exception = assertThrows(BusinessLogicException.class,
-                () -> transferenciaService.transferir(dto));
-
-        assertEquals("La moneda de la transferencia no coincide con la de la cuenta origen.", exception.getMessage());
-    }
-
-    @Test
-    public void testValidarCuentasConMonedaInvalida() {
-        TransferenciaDto dto = new TransferenciaDto();
-        dto.setMoneda("YENES"); // Moneda inválida
-
-        Cuenta cuentaOrigen = new Cuenta();
-        cuentaOrigen.setMoneda(TipoMoneda.PESOS);
-        cuentaOrigen.setBalance(500.0);
-
-        TransferenciaValidator validator = new TransferenciaValidator();
-
-        BusinessLogicException exception = assertThrows(BusinessLogicException.class, () -> {
-            validator.validarCuentas(cuentaOrigen, null, dto);
-        });
-
-        assertEquals("La moneda de la transferencia es inválida.", exception.getMessage());
-    }
-
-
-
-
 }

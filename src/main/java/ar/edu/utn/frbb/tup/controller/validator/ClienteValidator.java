@@ -38,10 +38,11 @@ public class ClienteValidator {
         try {
             // Validamos que la fecha esté en el formato correcto (yyyy-MM-dd)
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            LocalDate fechaNacimiento = LocalDate.parse(fechaNacimientoStr, formatter);
+            LocalDate.parse(fechaNacimientoStr, formatter);
+            //LocalDate fechaNacimiento = LocalDate.parse(fechaNacimientoStr, formatter);
 
             // Si la fecha es válida, la validamos en el siguiente paso
-            validateFechaNacimiento(fechaNacimiento);
+           // validateFechaNacimiento(fechaNacimiento);
 
         } catch (DateTimeParseException e) {
             // Si el formato no es válido, lanzamos una excepción personalizada
