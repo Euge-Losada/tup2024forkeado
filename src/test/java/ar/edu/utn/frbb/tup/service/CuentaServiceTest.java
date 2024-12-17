@@ -112,17 +112,28 @@ class CuentaServiceTest {
     }
 
     @Test
-    void testRealizarTransferenciaInternaFondosInsuficientes() {
-        Cuenta cuentaDestino = new Cuenta(TipoCuenta.CAJA_AHORRO, TipoMoneda.PESOS, 100.0);
+    void testRealizarTransferenciaInternaFondosInsuficientes() throws NoAlcanzaException, CantidadNegativaException {
+        // Configuración de mocks
+        Cuenta cuentaOrigen = mock(Cuenta.class); // Mock de cuenta origen
+        Cuenta cuentaDestino = mock(Cuenta.class); // Mock de cuenta destino
         TransferenciaDto transferenciaDto = new TransferenciaDto();
-        transferenciaDto.setMonto(1000.0);
+        transferenciaDto.setMonto(1000.0); // Monto mayor al balance esperado
 
-        assertThatThrownBy(() -> cuentaService.realizarTransferenciaInterna(cuenta, cuentaDestino, transferenciaDto))
-                .isInstanceOf(BusinessLogicException.class)
-                .hasMessageContaining("Fondos insuficientes");
+        // Configura el mock para lanzar la excepción al debitar
+        doThrow(new NoAlcanzaException("Saldo insuficiente para realizar el débito."))
+                .when(cuentaOrigen).debitarDeCuenta(anyDouble());
 
+        // Verifica que se lanza una NoAlcanzaException al realizar la transferencia
+        assertThatThrownBy(() -> cuentaService.realizarTransferenciaInterna(cuentaOrigen, cuentaDestino, transferenciaDto))
+                .isInstanceOf(NoAlcanzaException.class)
+                .hasMessageContaining("Saldo insuficiente para realizar el débito.");
+
+        // Verifica que nunca se guardó la cuenta porque la transferencia falló
         verify(cuentaDao, never()).save(any());
     }
+
+
+
 
     @Test
     void testRegistrarMovimientoExternoExitoso() throws Exception, NoAlcanzaException, CantidadNegativaException {

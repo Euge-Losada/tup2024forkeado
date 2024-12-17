@@ -27,6 +27,10 @@ class TransferenciaServiceTest {
     private CuentaDao cuentaDao;
 
     @Mock
+    private MovimientoService movimientoService;
+
+
+    @Mock
     private CuentaService cuentaService;
 
     @Mock

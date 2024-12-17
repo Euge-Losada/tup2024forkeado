@@ -1,6 +1,7 @@
 package ar.edu.utn.frbb.tup.service;
 
 import ar.edu.utn.frbb.tup.model.Movimiento;
+import ar.edu.utn.frbb.tup.persistence.CuentaDao;
 import ar.edu.utn.frbb.tup.persistence.MovimientoDao;
 import ar.edu.utn.frbb.tup.persistence.entity.MovimientoEntity;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,9 @@ class MovimientoServiceTest {
 
     @Mock
     private MovimientoDao movimientoDao;
+
+    @Mock
+    private CuentaDao cuentaDao;
 
     @BeforeEach
     void setUp() {

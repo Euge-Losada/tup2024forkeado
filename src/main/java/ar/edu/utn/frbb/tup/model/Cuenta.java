@@ -19,14 +19,13 @@ public class Cuenta {
     private final List<MovimientoEntity> movimientos;
     private static final Set<Long> numerosDeCuentaUsados = new HashSet<>();
 
-
     public Cuenta(TipoCuenta tipoCuenta, TipoMoneda moneda, double balance) {
-        this.numeroCuenta = generarNumeroCuentaUnico();//new Random().nextLong();  // Genera un número de cuenta aleatorio
-        this.fechaCreacion = LocalDateTime.now();     // Establece la fecha de creación
-        this.tipoCuenta = tipoCuenta;                 // Asigna el tipo de cuenta
-        this.moneda = moneda;                         // Asigna la moneda
-        this.balance = balance;                       // Asigna el balance inicial
-        this.movimientos = new ArrayList<>();         // Inicializa la lista de movimientos
+        this.numeroCuenta = generarNumeroCuentaUnico();   // Generar número único de cuenta
+        this.fechaCreacion = LocalDateTime.now();         // Fecha de creación actual
+        this.tipoCuenta = tipoCuenta;                     // Tipo de cuenta
+        this.moneda = moneda;                             // Moneda
+        this.balance = balance;                           // Balance inicial
+        this.movimientos = new ArrayList<>();             // Lista de movimientos
     }
 
     public long generarNumeroCuentaUnico() {
@@ -41,8 +40,6 @@ public class Cuenta {
         return numeroCuenta;
     }
 
-
-
     public Cliente getTitular() {
         return titular;
     }
@@ -55,40 +52,44 @@ public class Cuenta {
         return tipoCuenta;
     }
 
-    public Cuenta setTipoCuenta(TipoCuenta tipoCuenta) {
+    public void setTipoCuenta(TipoCuenta tipoCuenta) {
         this.tipoCuenta = tipoCuenta;
-        return this;
     }
 
     public TipoMoneda getMoneda() {
         return moneda;
     }
 
-    public Cuenta setMoneda(TipoMoneda moneda) {
+    public void setMoneda(TipoMoneda moneda) {
         this.moneda = moneda;
-        return this;
     }
 
     public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
 
-    public Cuenta setFechaCreacion(LocalDateTime fechaCreacion) {
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
-        return this;
     }
 
     public double getBalance() {
         return balance;
     }
 
-    public Cuenta setBalance(double balance) {
+    public void setBalance(double balance) {
         this.balance = balance;
-        return this;
     }
 
     public List<MovimientoEntity> getMovimientos() {
         return new ArrayList<>(movimientos); // Retornar copia para evitar modificaciones externas
+    }
+
+    public long getNumeroCuenta() {
+        return numeroCuenta;
+    }
+
+    public void setNumeroCuenta(long numeroCuenta) {
+        this.numeroCuenta = numeroCuenta;
     }
 
     public void debitarDeCuenta(double cantidadADebitar) throws NoAlcanzaException, CantidadNegativaException {
@@ -114,7 +115,6 @@ public class Cuenta {
     }
 
     private void agregarMovimiento(String tipo, double monto, String descripcion) {
-        // Crear una instancia de Movimiento con los datos proporcionados
         Movimiento movimiento = new Movimiento(
                 this.numeroCuenta, // Número de cuenta
                 tipo,              // Tipo de movimiento (CRÉDITO o DÉBITO)
@@ -123,21 +123,8 @@ public class Cuenta {
                 LocalDateTime.now() // Fecha y hora actual
         );
 
-        // Usar Movimiento para crear un MovimientoEntity
         MovimientoEntity movimientoEntity = new MovimientoEntity(movimiento);
-
-        // Agregar el movimiento a la lista
         movimientos.add(movimientoEntity);
-    }
-
-
-
-    public void setNumeroCuenta(long numeroCuenta) {
-        this.numeroCuenta = numeroCuenta;
-    }
-
-    public long getNumeroCuenta() {
-        return numeroCuenta;
     }
 
     @Override
@@ -150,6 +137,4 @@ public class Cuenta {
                 ", fechaCreacion=" + fechaCreacion +
                 '}';
     }
-
-
 }

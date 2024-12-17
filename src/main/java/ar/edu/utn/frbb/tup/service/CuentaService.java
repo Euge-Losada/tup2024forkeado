@@ -72,17 +72,40 @@ public class CuentaService {
             throws NoAlcanzaException, CantidadNegativaException {
         double monto = transferenciaDto.getMonto();
 
-        // Realizar débitos y créditos
+        // Debitar de la cuenta origen
         cuentaOrigen.debitarDeCuenta(monto);
+
+        // Acreditar en la cuenta destino
         cuentaDestino.acreditarEnCuenta(monto);
 
-        // Registrar movimientos
-        registrarMovimientos(cuentaOrigen, cuentaDestino, transferenciaDto);
+        // Crear movimiento de débito
+        Movimiento movimientoDebito = new Movimiento(
+                cuentaOrigen.getNumeroCuenta(),
+                "DÉBITO",
+                monto,
+                "Transferencia a cuenta " + cuentaDestino.getNumeroCuenta(),
+                LocalDateTime.now()
+        );
 
-        // Guardar cuentas actualizadas
+        // Crear movimiento de crédito
+        Movimiento movimientoCredito = new Movimiento(
+                cuentaDestino.getNumeroCuenta(),
+                "CRÉDITO",
+                monto,
+                "Transferencia desde cuenta " + cuentaOrigen.getNumeroCuenta(),
+                LocalDateTime.now()
+        );
+
+        // Registrar movimientos
+        movimientoService.registrarMovimiento(cuentaOrigen.getNumeroCuenta(), movimientoDebito);
+        movimientoService.registrarMovimiento(cuentaDestino.getNumeroCuenta(), movimientoCredito);
+
+        // Guardar las cuentas actualizadas
         cuentaDao.save(cuentaOrigen);
         cuentaDao.save(cuentaDestino);
     }
+
+
 
     public void registrarMovimientoExterno(Cuenta cuentaOrigen, TransferenciaDto transferenciaDto) throws NoAlcanzaException, CantidadNegativaException {
         cuentaOrigen.debitarDeCuenta(transferenciaDto.getMonto());

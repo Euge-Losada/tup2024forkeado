@@ -24,52 +24,38 @@ public class MovimientoController {
     @Autowired
     private MovimientoService movimientoService;
 
-
     @GetMapping("/{numeroCuenta}/movimientos")
     public ResponseEntity<Map<String, Object>> obtenerHistorialMovimientos(@PathVariable long numeroCuenta) {
-        // Verificar si la cuenta existe
-        Cuenta cuenta = cuentaDao.find(numeroCuenta);
-        if (cuenta == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of(
-                            "estado", "ERROR",
-                            "mensaje", "La cuenta con número " + numeroCuenta + " no existe."
-                    ));
-        }
-
-        // Obtener movimientos de la cuenta
+        System.out.println("Buscando movimientos para la cuenta: " + numeroCuenta);
         List<Movimiento> movimientos = movimientoService.obtenerMovimientosPorCuenta(numeroCuenta);
 
-        // Verificar si no hay movimientos
         if (movimientos.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                    "estado", "SIN MOVIMIENTOS",
-                    "mensaje", "No se encontraron movimientos para la cuenta " + numeroCuenta
-            ));
+            return ResponseEntity.ok(Map.of("estado", "SIN MOVIMIENTOS", "mensaje", "No se encontraron movimientos."));
         }
 
-        // Formatear respuesta con los movimientos
-        Map<String, Object> response = new HashMap<>();
-        response.put("numeroCuenta", numeroCuenta);
-        response.put("movimientos", movimientos.stream().map(mov -> Map.of(
-                "fecha", mov.getFecha(),
-                "tipo", mov.getTipo(),
-                "descripcionBreve", mov.getDescripcion(),
-                "monto", mov.getMonto()
-        )).collect(Collectors.toList()));
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of(
+                "numeroCuenta", numeroCuenta,
+                "movimientos", movimientos.stream().map(mov -> Map.of(
+                        "fecha", mov.getFecha(),
+                        "tipo", mov.getTipo(),
+                        "descripcion", mov.getDescripcion(),
+                        "monto", mov.getMonto()
+                )).collect(Collectors.toList())
+        ));
     }
-
 
     @PostMapping("/{numeroCuenta}")
     public ResponseEntity<Void> registrarMovimiento(
             @PathVariable long numeroCuenta,
             @RequestBody Movimiento movimiento) {
-        movimientoService.registrarMovimiento(numeroCuenta, movimiento);
-        return ResponseEntity.ok().build();
+        try {
+            movimientoService.registrarMovimiento(numeroCuenta, movimiento); // Llama al servicio para registrar el movimiento
+            return ResponseEntity.ok().build(); // Devuelve un 200 OK si se registra correctamente
+        } catch (Exception e) {
+            // Devuelve un error genérico en caso de excepción
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
-
 
 
 }

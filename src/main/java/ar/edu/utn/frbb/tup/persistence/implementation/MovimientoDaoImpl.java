@@ -14,38 +14,33 @@ public class MovimientoDaoImpl extends AbstractBaseDao implements MovimientoDao 
 
     @Override
     public void guardarMovimiento(MovimientoEntity movimiento) {
-        if (movimiento.getNumeroCuenta() <= 0) {
-            throw new IllegalArgumentException("Número de cuenta inválido: " + movimiento.getNumeroCuenta());
-        }
-
-        // Verificar si ya existe una lista de movimientos para esa cuenta
+        System.out.println("Guardando movimiento: " + movimiento);
         Object movimientosExistentes = getInMemoryDatabase().get(movimiento.getNumeroCuenta());
 
         if (movimientosExistentes instanceof List<?>) {
             List<MovimientoEntity> movimientos = (List<MovimientoEntity>) movimientosExistentes;
             movimientos.add(movimiento);
         } else {
-            // Si no existe, crear una nueva lista y agregar el movimiento
             List<MovimientoEntity> nuevaLista = new ArrayList<>();
             nuevaLista.add(movimiento);
             getInMemoryDatabase().put(movimiento.getNumeroCuenta(), nuevaLista);
         }
     }
 
-
     @Override
     public List<MovimientoEntity> obtenerMovimientosPorCuenta(long numeroCuenta) {
+        System.out.println("Buscando movimientos para cuenta: " + numeroCuenta);
         Object movimientosExistentes = getInMemoryDatabase().get(numeroCuenta);
 
         if (movimientosExistentes instanceof List<?>) {
             @SuppressWarnings("unchecked")
             List<MovimientoEntity> movimientos = (List<MovimientoEntity>) movimientosExistentes;
+            System.out.println("Movimientos encontrados: " + movimientos);
             return movimientos;
         }
-
-        return new ArrayList<>(); // Devuelve una lista vacía si no hay movimientos
+        System.out.println("No se encontraron movimientos para la cuenta: " + numeroCuenta);
+        return new ArrayList<>(); // Si no hay movimientos, retorna una lista vacía
     }
-
 
     @Override
     protected String getEntityName() {
