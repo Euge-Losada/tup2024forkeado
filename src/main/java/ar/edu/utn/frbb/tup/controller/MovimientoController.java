@@ -26,6 +26,15 @@ public class MovimientoController {
 
     @GetMapping("/{numeroCuenta}/movimientos")
     public ResponseEntity<Map<String, Object>> obtenerHistorialMovimientos(@PathVariable long numeroCuenta) {
+        Cuenta cuenta = cuentaDao.find(numeroCuenta);
+
+        if (cuenta == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "mensaje", "La cuenta con número " + numeroCuenta + " no existe.",
+                            "estado", "ERROR"
+                    ));
+        }
         System.out.println("Buscando movimientos para la cuenta: " + numeroCuenta);
         List<Movimiento> movimientos = movimientoService.obtenerMovimientosPorCuenta(numeroCuenta);
 
